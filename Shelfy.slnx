@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Shelfy.App/Shelfy.App.csproj" />
+    <Project Path="src/Shelfy.Core/Shelfy.Core.csproj" />
+    <Project Path="src/Shelfy.Infrastructure/Shelfy.Infrastructure.csproj" />
+  </Folder>
+</Solution>
