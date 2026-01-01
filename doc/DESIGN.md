@@ -70,11 +70,32 @@ Shelfy.Core
 ## 5. Use Cases（アプリケーションルール）
 
 ### 代表的な Use Case
+
+#### Shelves
 - CreateShelf
-- AddItems
+- RenameShelf
+- MoveShelf（階層移動）
+- DeleteShelf
+- TogglePinShelf
+- ReorderShelves（並び順変更）
+
+#### Items
+- AddItem
 - RemoveItem
+- RenameItem
+- UpdateItemMemo（メモ更新）
+- MoveItemToShelf（別Shelfへ移動）
+
+#### Launch
 - LaunchItem
+- OpenParentFolder（親フォルダを開く）
+
+#### Search
 - SearchItems
+
+#### Utilities
+- GetRecentItems
+- GetMissingItems
 
 ### 特徴
 - 1 ユースケース = 1 クラス
@@ -87,6 +108,11 @@ Shelfy.Core
   - 起動成功 / 失敗
   - PostAction（HideWindow / KeepWindow）
 
+### OpenParentFolder の設計
+- 入力：ItemId
+- 出力：成功 / 失敗
+- 対象：File / Folder のみ（URL は非対応）
+
 ---
 
 ## 6. Ports（Core が要求する能力）
@@ -94,7 +120,7 @@ Shelfy.Core
 ### Persistence
 - IShelfRepository
 - IItemRepository
-- ISettingsRepository
+- ISettingsRepository（ホットキー設定、表示設定等）
 
 ### System
 - IItemLauncher

@@ -3,5 +3,6 @@
     <Project Path="src/Shelfy.App/Shelfy.App.csproj" />
     <Project Path="src/Shelfy.Core/Shelfy.Core.csproj" />
     <Project Path="src/Shelfy.Infrastructure/Shelfy.Infrastructure.csproj" />
+    <Project Path="src/Shelfy.Core.Tests/Shelfy.Core.Tests.csproj" />
   </Folder>
 </Solution>

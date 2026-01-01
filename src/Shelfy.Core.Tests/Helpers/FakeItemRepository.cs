@@ -1,12 +1,12 @@
 using Shelfy.Core.Domain.Entities;
 using Shelfy.Core.Ports.Persistence;
 
-namespace Shelfy.Infrastructure.Persistence;
+namespace Shelfy.Core.Tests.Helpers;
 
 /// <summary>
-/// Item のインメモリリポジトリ（開発用）
+/// テスト用のインメモリ IItemRepository 実装
 /// </summary>
-public class InMemoryItemRepository : IItemRepository
+public class FakeItemRepository : IItemRepository
 {
     private readonly Dictionary<ItemId, Item> _items = new();
 
@@ -26,24 +26,23 @@ public class InMemoryItemRepository : IItemRepository
 
     public Task<IReadOnlyList<Item>> SearchAsync(string query, CancellationToken cancellationToken = default)
     {
-        var lowerQuery = query.ToLowerInvariant();
-        var results = _items.Values
+        var items = _items.Values
             .Where(i =>
-                i.DisplayName.ToLowerInvariant().Contains(lowerQuery) ||
-                i.Target.ToLowerInvariant().Contains(lowerQuery) ||
-                (i.Memo?.ToLowerInvariant().Contains(lowerQuery) ?? false))
+                i.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                i.Target.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                (i.Memo?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
             .ToList();
-        return Task.FromResult<IReadOnlyList<Item>>(results);
+        return Task.FromResult<IReadOnlyList<Item>>(items);
     }
 
     public Task<IReadOnlyList<Item>> GetRecentAsync(int count, CancellationToken cancellationToken = default)
     {
-        var results = _items.Values
+        var items = _items.Values
             .Where(i => i.LastAccessedAt.HasValue)
             .OrderByDescending(i => i.LastAccessedAt)
             .Take(count)
             .ToList();
-        return Task.FromResult<IReadOnlyList<Item>>(results);
+        return Task.FromResult<IReadOnlyList<Item>>(items);
     }
 
     public Task<IReadOnlyList<Item>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -68,4 +67,9 @@ public class InMemoryItemRepository : IItemRepository
         _items.Remove(id);
         return Task.CompletedTask;
     }
+
+    // テスト用ヘルパー
+    public void Clear() => _items.Clear();
+    public int Count => _items.Count;
+    public bool Contains(ItemId id) => _items.ContainsKey(id);
 }

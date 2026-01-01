@@ -14,16 +14,38 @@
 - Ports 定義
 - UseCases：
   - CreateShelf
-  - AddItems
+  - RenameShelf
+  - DeleteShelf
+  - AddItem
+  - RemoveItem
+  - RenameItem
   - LaunchItem
 - Unit Test（Core のみ）
 
 ---
 
+## フェーズ1.5：Core 追加実装
+目標：SPECIFICATION.md 記載の全ユースケースを網羅
+
+- UseCases：
+  - MoveShelf（階層移動）
+  - ReorderShelves（並び順変更）
+  - TogglePinShelf（ピン留め）
+  - UpdateItemMemo（メモ更新）
+  - MoveItemToShelf（別Shelfへ移動）
+  - OpenParentFolder（親フォルダを開く）
+- Unit Test
+
+---
+
 ## フェーズ2：Infrastructure 実装
 - SQLite Repository 実装
+  - ShelfRepository
+  - ItemRepository
+  - SettingsRepository
 - Win32 ItemLauncher 実装
 - HotkeyHoldState 実装
+- ExistenceChecker 実装
 
 ---
 
@@ -36,16 +58,20 @@
 ---
 
 ## フェーズ4：操作性強化
-- 検索
+- 検索（プレフィックス検索：box:, type:, in:）
 - 最近使った
 - ピン留め
 - 欠損表示
+- Shelf 階層移動 UI
+- Shelf / Item 並び順変更 UI（ドラッグ＆ドロップ）
+- Item のメモ編集 UI
 
 ---
 
 ## フェーズ5：安定化
-- Export / Import
-- 設定画面
+- Export / Import（データバックアップ・復元）
+- 設定画面（ホットキー設定、表示設定）
+- ISettingsRepository 実装
 - ログ整備
 - README 整備
 
