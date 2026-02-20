@@ -41,14 +41,6 @@ public partial class ItemViewModel : ObservableObject
     [ObservableProperty]
     private string _shelfName = string.Empty;
 
-    public string TypeIcon => Type switch
-    {
-        ItemType.File => "📄",
-        ItemType.Folder => "📁",
-        ItemType.Url => "🔗",
-        _ => "❓"
-    };
-
     public ItemViewModel(Item item, IExistenceChecker? existenceChecker = null)
     {
         _existenceChecker = existenceChecker;

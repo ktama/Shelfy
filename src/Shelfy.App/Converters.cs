@@ -1,29 +1,29 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
-using System.Windows.Media;
-
-using Color = System.Windows.Media.Color;
-using ColorConverter = System.Windows.Media.ColorConverter;
-using Brushes = System.Windows.Media.Brushes;
+using Shelfy.Core.Domain.Entities;
+using Wpf.Ui.Controls;
 
 namespace Shelfy.App;
 
 /// <summary>
-/// bool を文字列に変換するコンバーター
+/// ItemType を SymbolRegular アイコンに変換するコンバーター
 /// </summary>
-public class BoolToStringConverter : IValueConverter
+public class ItemTypeToSymbolConverter : IValueConverter
 {
-    public string TrueValue { get; set; } = "True";
-    public string FalseValue { get; set; } = "False";
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is bool boolValue)
+        if (value is ItemType type)
         {
-            return boolValue ? TrueValue : FalseValue;
+            return type switch
+            {
+                ItemType.File => SymbolRegular.Document24,
+                ItemType.Folder => SymbolRegular.FolderOpen24,
+                ItemType.Url => SymbolRegular.Globe24,
+                _ => SymbolRegular.Question24,
+            };
         }
-        return FalseValue;
+        return SymbolRegular.Document24;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -33,22 +33,15 @@ public class BoolToStringConverter : IValueConverter
 }
 
 /// <summary>
-/// bool を色に変換するコンバーター
+/// bool (IsPinned) を Shelf アイコンの SymbolRegular に変換するコンバーター
 /// </summary>
-public class BoolToColorConverter : IValueConverter
+public class BoolToPinSymbolConverter : IValueConverter
 {
-    public string TrueColor { get; set; } = "Black";
-    public string FalseColor { get; set; } = "Red";
-
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is bool boolValue)
-        {
-            var colorName = boolValue ? TrueColor : FalseColor;
-            var color = (Color)ColorConverter.ConvertFromString(colorName);
-            return new SolidColorBrush(color);
-        }
-        return Brushes.Black;
+        return value is true
+            ? SymbolRegular.Pin24
+            : SymbolRegular.Folder24;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

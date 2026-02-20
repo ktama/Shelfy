@@ -2,6 +2,7 @@
 using System.Windows.Controls;
 using System.Windows.Input;
 using Shelfy.App.ViewModels;
+using Wpf.Ui.Controls;
 
 using Application = System.Windows.Application;
 using DataFormats = System.Windows.DataFormats;
@@ -14,7 +15,7 @@ namespace Shelfy.App;
 /// <summary>
 /// Interaction logic for MainWindow.xaml
 /// </summary>
-public partial class MainWindow : Window
+public partial class MainWindow : FluentWindow
 {
     private MainViewModel? _viewModel;
     private GlobalHotkey? _globalHotkey;
@@ -98,6 +99,9 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        // ContentDialog ホストを設定
+        FluentDialogs.DialogHost = RootContentDialogPresenter;
+
         if (_viewModel is not null)
         {
             await _viewModel.LoadAsync();

@@ -1,13 +1,13 @@
 # Shelfy – Implementation Plan
 
-## フェーズ0：骨格作成
+## フェーズ0：骨格作成 ✅
 - ソリューション作成
 - Shelfy.Core / Infrastructure / App 分離
 - DI 基盤構築
 
 ---
 
-## フェーズ1：Core 最小実装
+## フェーズ1：Core 最小実装 ✅
 目標：UI なしでも振る舞いが成立する状態
 
 - Domain 実装（Shelf / Item）
@@ -24,7 +24,7 @@
 
 ---
 
-## フェーズ1.5：Core 追加実装
+## フェーズ1.5：Core 追加実装 ✅
 目標：SPECIFICATION.md 記載の全ユースケースを網羅
 
 - UseCases：
@@ -38,7 +38,7 @@
 
 ---
 
-## フェーズ2：Infrastructure 実装
+## フェーズ2：Infrastructure 実装 ✅
 - SQLite Repository 実装
   - ShelfRepository
   - ItemRepository
@@ -49,7 +49,7 @@
 
 ---
 
-## フェーズ3：App（WPF）
+## フェーズ3：App（WPF） ✅
 - MainWindow 作成
 - ViewModel 作成
 - UseCase 接続
@@ -57,7 +57,7 @@
 
 ---
 
-## フェーズ4：操作性強化
+## フェーズ4：操作性強化 ✅
 - 検索（プレフィックス検索：box:, type:, in:）
 - 最近使った
 - ピン留め
@@ -68,12 +68,45 @@
 
 ---
 
-## フェーズ5：安定化
+## フェーズ5：安定化 ✅
 - Export / Import（データバックアップ・復元）
 - 設定画面（ホットキー設定、表示設定）
 - ISettingsRepository 実装
 - ログ整備
 - README 整備
+
+---
+
+## ✅ フェーズ6：UI モダン化（Fluent Design）
+目標：Windows 11 ネイティブアプリと同等の見た目・操作感
+
+詳細は [UI_DESIGN.md](UI_DESIGN.md) を参照
+
+### 基盤導入
+- `WPF-UI` パッケージ追加
+- `App.xaml` にテーマリソース（`ThemesDictionary`、`ControlsDictionary`）追加
+- `FluentWindow` 化（Mica 背景、カスタムタイトルバー）
+- カラーテーマ：システム連動（`Theme="Auto"`）
+
+### レイアウト刷新
+- `ToolBar` 廃止 → `NavigationView`（Left compact）+ `TitleBar`
+- 検索ボックスを `AutoSuggestBox` に変更、タイトルバーに統合
+- Shelf ツリーを `NavigationView` 内に配置
+- アイテム一覧をカード型（`CardControl`）レイアウトに変更
+- `StatusBar` → `InfoBar` / `Snackbar`
+
+### アイコン統一
+- 絵文字アイコンを `SymbolIcon`（`SymbolRegular`）に全面置換
+
+### ダイアログ刷新
+- `InputDialog` → `ContentDialog`
+- `MemoEditDialog` → `ContentDialog`
+- `ShelfPickerDialog` → `ContentDialog`
+- `SettingsDialog` → Settings ページ（NavigationView 内）
+
+### コンテキストメニュー
+- Fluent テーマ適用済み `ContextMenu` に置き換え
+- `SymbolIcon` 付きメニュー項目
 
 ---
 

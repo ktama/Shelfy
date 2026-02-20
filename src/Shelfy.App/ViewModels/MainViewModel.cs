@@ -10,8 +10,6 @@ using Shelfy.Core.UseCases.Launch;
 using Shelfy.Core.UseCases.Search;
 using Shelfy.Core.UseCases.Shelves;
 using Application = System.Windows.Application;
-using MessageBox = System.Windows.MessageBox;
-using Window = System.Windows.Window;
 
 namespace Shelfy.App.ViewModels;
 
@@ -381,7 +379,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task CreateShelfAsync()
     {
-        var name = PromptForName("New Shelf", "Enter shelf name:");
+        var name = await PromptForNameAsync("New Shelf", "Enter shelf name:");
         if (string.IsNullOrWhiteSpace(name)) return;
 
         var result = await _shelfUseCases.Create.ExecuteAsync(name);
@@ -406,7 +404,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (SelectedShelf is null) return;
 
-        var name = PromptForName("New Child Shelf", "Enter child shelf name:");
+        var name = await PromptForNameAsync("New Child Shelf", "Enter child shelf name:");
         if (string.IsNullOrWhiteSpace(name)) return;
 
         var result = await _shelfUseCases.Create.ExecuteAsync(name, SelectedShelf.Id);
@@ -431,13 +429,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (SelectedShelf is null) return;
 
-        var confirm = MessageBox.Show(
+        var confirmed = await FluentDialogs.ShowConfirmAsync(
             $"Are you sure you want to delete '{SelectedShelf.Name}' and all its contents?",
-            "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            "Confirm Delete");
 
-        if (confirm != MessageBoxResult.Yes) return;
+        if (!confirmed) return;
 
         var result = await _shelfUseCases.Delete.ExecuteAsync(SelectedShelf.Id);
 
@@ -500,7 +496,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (SelectedShelf is null) return;
 
-        var newName = PromptForName("Rename Shelf", "Enter new name:", SelectedShelf.Name);
+        var newName = await PromptForNameAsync("Rename Shelf", "Enter new name:", SelectedShelf.Name);
         if (string.IsNullOrWhiteSpace(newName) || newName == SelectedShelf.Name) return;
 
         var result = await _shelfUseCases.Rename.ExecuteAsync(SelectedShelf.Id, newName);
@@ -555,9 +551,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (SelectedShelf is null) return;
 
-        var owner = Application.Current.MainWindow;
-        var (confirmed, targetShelfId, isRoot) = ShelfPickerDialog.ShowPickerDialog(
-            owner,
+        var (confirmed, targetShelfId, isRoot) = await FluentDialogs.ShowShelfPickerAsync(
             "Move Shelf",
             RootShelves,
             SelectedShelf.Id);
@@ -709,13 +703,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (SelectedItem is null) return;
 
-        var confirm = MessageBox.Show(
+        var confirmed = await FluentDialogs.ShowConfirmAsync(
             $"Remove '{SelectedItem.DisplayName}' from this shelf?",
-            "Confirm Remove",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            "Confirm Remove");
 
-        if (confirm != MessageBoxResult.Yes) return;
+        if (!confirmed) return;
 
         var result = await _itemUseCases.Remove.ExecuteAsync(SelectedItem.Id);
 
@@ -739,7 +731,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (SelectedItem is null) return;
 
-        var newName = PromptForName("Rename Item", "Enter new display name:", SelectedItem.DisplayName);
+        var newName = await PromptForNameAsync("Rename Item", "Enter new display name:", SelectedItem.DisplayName);
         if (string.IsNullOrWhiteSpace(newName) || newName == SelectedItem.DisplayName) return;
 
         var result = await _itemUseCases.Rename.ExecuteAsync(SelectedItem.Id, newName);
@@ -788,8 +780,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (SelectedItem is null) return;
 
         var owner = Application.Current.MainWindow;
-        var (confirmed, memo) = MemoEditDialog.ShowMemoDialog(
-            owner,
+        var (confirmed, memo) = await FluentDialogs.ShowMemoAsync(
             "Edit Memo",
             $"Memo for: {SelectedItem.DisplayName}",
             SelectedItem.Memo);
@@ -816,9 +807,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (SelectedItem is null) return;
 
-        var owner = Application.Current.MainWindow;
-        var (confirmed, targetShelfId, _) = ShelfPickerDialog.ShowPickerDialog(
-            owner,
+        var (confirmed, targetShelfId, _) = await FluentDialogs.ShowShelfPickerAsync(
             "Move Item to Shelf",
             RootShelves);
 
@@ -941,8 +930,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var owner = Application.Current.MainWindow;
-        var url = InputDialog.ShowDialog(owner, "Add URL", "Enter URL (e.g. https://example.com):");
+        var url = await FluentDialogs.ShowInputAsync("Add URL", "Enter URL (e.g. https://example.com):");
         if (string.IsNullOrWhiteSpace(url)) return;
 
         // URL バリデーション
@@ -955,7 +943,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         // 表示名を入力（デフォルトはホスト名）
         var defaultName = uri.Host;
-        var displayName = InputDialog.ShowDialog(owner, "Display Name", "Enter display name:", defaultName);
+        var displayName = await FluentDialogs.ShowInputAsync("Display Name", "Enter display name:", defaultName);
         if (string.IsNullOrWhiteSpace(displayName)) displayName = defaultName;
 
         var result = await _itemUseCases.Add.ExecuteAsync(
@@ -985,12 +973,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     #region Helper Methods
 
     /// <summary>
-    /// ユーザーに名前入力を求める
+    /// ユーザーに名前入力を求める（ContentDialog）
     /// </summary>
-    private string? PromptForName(string title, string prompt, string defaultValue = "")
+    private Task<string?> PromptForNameAsync(string title, string prompt, string defaultValue = "")
     {
-        var owner = Application.Current.MainWindow;
-        return InputDialog.ShowDialog(owner, title, prompt, defaultValue);
+        return FluentDialogs.ShowInputAsync(title, prompt, defaultValue);
     }
 
     #endregion
@@ -1127,18 +1114,16 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
             if (dialog.ShowDialog() != true) return;
 
-            var replaceConfirm = MessageBox.Show(
+            var replaceConfirm = await FluentDialogs.ShowYesNoCancelAsync(
                 "Do you want to replace all existing data?\n\n" +
                 "Yes = Replace all data\n" +
                 "No = Merge with existing data\n" +
                 "Cancel = Abort import",
-                "Import Mode",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
+                "Import Mode");
 
-            if (replaceConfirm == MessageBoxResult.Cancel) return;
+            if (replaceConfirm is null) return;
 
-            var replaceAll = replaceConfirm == MessageBoxResult.Yes;
+            var replaceAll = replaceConfirm.Value;
 
             IsLoading = true;
             StatusMessage = "Importing...";
@@ -1195,8 +1180,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         var windowWidth = double.TryParse(windowWidthStr, out var ww) ? ww : 800;
         var windowHeight = double.TryParse(windowHeightStr, out var wh) ? wh : 500;
 
-        var dialog = SettingsDialog.ShowSettingsDialog(
-            owner,
+        var dialog = await FluentDialogs.ShowSettingsAsync(
             currentHotkey ?? "Ctrl+Shift+Space",
             startMinimized,
             recentCount,
@@ -1207,16 +1191,16 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         // 設定を保存
         await _settingsRepository.SetAsync(SettingKeys.GlobalHotkey, dialog.HotkeyText ?? "Ctrl+Shift+Space");
-        await _settingsRepository.SetAsync(SettingKeys.StartMinimized, dialog.StartMinimizedValue.ToString().ToLower());
-        await _settingsRepository.SetAsync(SettingKeys.RecentItemsCount, dialog.RecentItemsCountValue.ToString());
-        await _settingsRepository.SetAsync(SettingKeys.WindowWidth, dialog.WindowWidthValue.ToString("0"));
-        await _settingsRepository.SetAsync(SettingKeys.WindowHeight, dialog.WindowHeightValue.ToString("0"));
+        await _settingsRepository.SetAsync(SettingKeys.StartMinimized, dialog.StartMinimized.ToString().ToLower());
+        await _settingsRepository.SetAsync(SettingKeys.RecentItemsCount, dialog.RecentItemsCount.ToString());
+        await _settingsRepository.SetAsync(SettingKeys.WindowWidth, dialog.WindowWidth.ToString("0"));
+        await _settingsRepository.SetAsync(SettingKeys.WindowHeight, dialog.WindowHeight.ToString("0"));
 
         // ウィンドウサイズを即時反映
         if (owner is not null)
         {
-            owner.Width = dialog.WindowWidthValue;
-            owner.Height = dialog.WindowHeightValue;
+            owner.Width = dialog.WindowWidth;
+            owner.Height = dialog.WindowHeight;
         }
 
         // ホットキーを即時反映

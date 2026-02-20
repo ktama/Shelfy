@@ -8,6 +8,7 @@ using Shelfy.App.ViewModels;
 using Shelfy.Core.Ports.Persistence;
 using Shelfy.Core.Ports.System;
 using Shelfy.Infrastructure;
+using Wpf.Ui.Appearance;
 
 namespace Shelfy.App;
 
@@ -96,6 +97,12 @@ public partial class App : Application
             // タスクトレイアイコンを初期化
             _trayIcon = new TrayIcon(mainWindow);
             _trayIcon.Initialize();
+
+            // システムテーマの自動追従を有効化
+            var systemTheme = ApplicationThemeManager.GetSystemTheme();
+            ApplicationThemeManager.Apply(
+                systemTheme == SystemTheme.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light);
+            SystemThemeWatcher.Watch(mainWindow);
 
             // Start minimized が有効でない場合のみウィンドウを表示
             if (startMinStr != "true")

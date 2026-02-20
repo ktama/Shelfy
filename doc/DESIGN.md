@@ -168,6 +168,14 @@ Shelfy.Core
 
 ## 8. App（WPF）
 
+### UI フレームワーク
+- **WPF UI (`Wpf.Ui`)** — Windows 11 Fluent Design System 準拠
+- カラーテーマ：システム連動（ライト/ダーク自動切替）
+- ウィンドウ背景：Mica
+- アイコン：Segoe Fluent Icons（`SymbolRegular`）
+- ダイアログ：`ContentDialog`（オーバーレイ型）
+- 詳細は [UI_DESIGN.md](UI_DESIGN.md) を参照
+
 ### 役割
 - 表示
 - 入力受付
