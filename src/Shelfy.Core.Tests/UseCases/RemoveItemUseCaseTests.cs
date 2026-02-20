@@ -20,7 +20,7 @@ public class RemoveItemUseCaseTests
     public async Task Execute_WithExistingItem_RemovesItem()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File", DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act

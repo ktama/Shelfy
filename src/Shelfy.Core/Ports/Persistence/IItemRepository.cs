@@ -15,4 +15,5 @@ public interface IItemRepository
     Task AddAsync(Item item, CancellationToken cancellationToken = default);
     Task UpdateAsync(Item item, CancellationToken cancellationToken = default);
     Task DeleteAsync(ItemId id, CancellationToken cancellationToken = default);
+    Task DeleteByShelfIdAsync(ShelfId shelfId, CancellationToken cancellationToken = default);
 }

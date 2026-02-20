@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Shelfy.Core.Domain.Entities;
 using Shelfy.Core.Ports.Persistence;
 
@@ -8,7 +9,7 @@ namespace Shelfy.Infrastructure.Persistence;
 /// </summary>
 public class InMemoryItemRepository : IItemRepository
 {
-    private readonly Dictionary<ItemId, Item> _items = new();
+    private readonly ConcurrentDictionary<ItemId, Item> _items = new();
 
     public Task<Item?> GetByIdAsync(ItemId id, CancellationToken cancellationToken = default)
     {
@@ -20,6 +21,8 @@ public class InMemoryItemRepository : IItemRepository
     {
         var items = _items.Values
             .Where(i => i.ShelfId == shelfId)
+            .OrderBy(i => i.SortOrder)
+            .ThenBy(i => i.DisplayName)
             .ToList();
         return Task.FromResult<IReadOnlyList<Item>>(items);
     }
@@ -65,7 +68,17 @@ public class InMemoryItemRepository : IItemRepository
 
     public Task DeleteAsync(ItemId id, CancellationToken cancellationToken = default)
     {
-        _items.Remove(id);
+        _items.TryRemove(id, out _);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteByShelfIdAsync(ShelfId shelfId, CancellationToken cancellationToken = default)
+    {
+        var keysToRemove = _items.Where(kv => kv.Value.ShelfId == shelfId).Select(kv => kv.Key).ToList();
+        foreach (var key in keysToRemove)
+        {
+            _items.TryRemove(key, out _);
+        }
         return Task.CompletedTask;
     }
 }

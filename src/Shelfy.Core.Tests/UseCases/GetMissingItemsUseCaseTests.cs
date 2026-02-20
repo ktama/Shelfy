@@ -46,7 +46,8 @@ public class GetMissingItemsUseCaseTests
             shelfId,
             ItemType.File,
             @"C:\existing.txt",
-            "Existing File");
+            "Existing File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
         _existenceChecker.SetExists(@"C:\existing.txt", true);
 
@@ -72,7 +73,8 @@ public class GetMissingItemsUseCaseTests
             shelfId,
             ItemType.File,
             @"C:\existing.txt",
-            "Existing File");
+            "Existing File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(existingItem);
         _existenceChecker.SetExists(@"C:\existing.txt", true);
 
@@ -81,7 +83,8 @@ public class GetMissingItemsUseCaseTests
             shelfId,
             ItemType.File,
             @"C:\missing.txt",
-            "Missing File");
+            "Missing File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(missingItem);
         _existenceChecker.SetExists(@"C:\missing.txt", false);
 

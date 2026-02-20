@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Shelfy.Core.Domain.Entities;
 using Shelfy.Core.Ports.Persistence;
 
@@ -8,7 +9,7 @@ namespace Shelfy.Infrastructure.Persistence;
 /// </summary>
 public class InMemoryShelfRepository : IShelfRepository
 {
-    private readonly Dictionary<ShelfId, Shelf> _shelves = new();
+    private readonly ConcurrentDictionary<ShelfId, Shelf> _shelves = new();
 
     public Task<Shelf?> GetByIdAsync(ShelfId id, CancellationToken cancellationToken = default)
     {
@@ -44,7 +45,7 @@ public class InMemoryShelfRepository : IShelfRepository
 
     public Task DeleteAsync(ShelfId id, CancellationToken cancellationToken = default)
     {
-        _shelves.Remove(id);
+        _shelves.TryRemove(id, out _);
         return Task.CompletedTask;
     }
 }

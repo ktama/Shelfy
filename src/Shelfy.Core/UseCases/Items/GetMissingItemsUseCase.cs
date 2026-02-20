@@ -26,28 +26,21 @@ public class GetMissingItemsUseCase
     public async Task<GetMissingItemsResult> ExecuteAsync(
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            // 全アイテムを取得
-            var allItems = await _itemRepository.GetAllAsync(cancellationToken);
+        // 全アイテムを取得
+        var allItems = await _itemRepository.GetAllAsync(cancellationToken);
 
-            // Shelf 名をマッピング
-            var allShelves = await _shelfRepository.GetAllAsync(cancellationToken);
-            var shelfMap = allShelves.ToDictionary(s => s.Id, s => s.Name);
+        // Shelf 名をマッピング
+        var allShelves = await _shelfRepository.GetAllAsync(cancellationToken);
+        var shelfMap = allShelves.ToDictionary(s => s.Id, s => s.Name);
 
-            // 存在しないアイテムをフィルタ
-            var missingItems = allItems
-                .Where(item => !_existenceChecker.Exists(item.Target))
-                .Select(item => new MissingItemInfo(
-                    item,
-                    shelfMap.TryGetValue(item.ShelfId, out var name) ? name : "Unknown"))
-                .ToList();
+        // 存在しないアイテムをフィルタ
+        var missingItems = allItems
+            .Where(item => !_existenceChecker.Exists(item.Target))
+            .Select(item => new MissingItemInfo(
+                item,
+                shelfMap.TryGetValue(item.ShelfId, out var name) ? name : "Unknown"))
+            .ToList();
 
-            return new GetMissingItemsResult.Success(missingItems);
-        }
-        catch (Exception ex)
-        {
-            return new GetMissingItemsResult.Error(ex.Message);
-        }
+        return new GetMissingItemsResult.Success(missingItems);
     }
 }

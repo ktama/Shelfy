@@ -13,13 +13,24 @@ public class SqliteConnectionFactory : IDisposable
 
     public SqliteConnectionFactory(string databasePath)
     {
-        _connectionString = $"Data Source={databasePath}";
+        _connectionString = $"Data Source={databasePath};Cache=Shared";
     }
 
     public SqliteConnection CreateConnection()
     {
         EnsureInitialized();
-        return new SqliteConnection(_connectionString);
+        var connection = new SqliteConnection(_connectionString);
+        // 接続ごとに外部キー制約を有効化（SQLite では接続単位の設定）
+        connection.StateChange += (s, e) =>
+        {
+            if (e.CurrentState == global::System.Data.ConnectionState.Open && s is SqliteConnection conn)
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA foreign_keys = ON;";
+                cmd.ExecuteNonQuery();
+            }
+        };
+        return connection;
     }
 
     private void EnsureInitialized()
@@ -40,6 +51,16 @@ public class SqliteConnectionFactory : IDisposable
 
     private static void InitializeSchema(SqliteConnection connection)
     {
+        // 外部キー制約を有効化
+        using var pragmaFk = connection.CreateCommand();
+        pragmaFk.CommandText = "PRAGMA foreign_keys = ON;";
+        pragmaFk.ExecuteNonQuery();
+
+        // WAL モードを有効化（並行読み取り性能向上）
+        using var pragmaWal = connection.CreateCommand();
+        pragmaWal.CommandText = "PRAGMA journal_mode = WAL;";
+        pragmaWal.ExecuteNonQuery();
+
         const string createShelvesTable = """
             CREATE TABLE IF NOT EXISTS Shelves (
                 Id TEXT PRIMARY KEY,
@@ -59,9 +80,17 @@ public class SqliteConnectionFactory : IDisposable
                 Target TEXT NOT NULL,
                 DisplayName TEXT NOT NULL,
                 Memo TEXT NULL,
+                SortOrder INTEGER NOT NULL DEFAULT 0,
                 CreatedAt TEXT NOT NULL,
                 LastAccessedAt TEXT NULL,
                 FOREIGN KEY (ShelfId) REFERENCES Shelves(Id) ON DELETE CASCADE
+            );
+            """;
+
+        const string createSettingsTable = """
+            CREATE TABLE IF NOT EXISTS Settings (
+                Key TEXT PRIMARY KEY,
+                Value TEXT NOT NULL
             );
             """;
 
@@ -73,8 +102,61 @@ public class SqliteConnectionFactory : IDisposable
             """;
 
         using var command = connection.CreateCommand();
-        command.CommandText = $"{createShelvesTable}\n{createItemsTable}\n{createIndexes}";
+        command.CommandText = $"{createShelvesTable}\n{createItemsTable}\n{createSettingsTable}\n{createIndexes}";
         command.ExecuteNonQuery();
+
+        // バージョンベースのマイグレーション
+        MigrateSchema(connection);
+    }
+
+    private static int GetSchemaVersion(SqliteConnection connection)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = "PRAGMA user_version;";
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
+    private static void SetSchemaVersion(SqliteConnection connection, int version)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = $"PRAGMA user_version = {version};";
+        cmd.ExecuteNonQuery();
+    }
+
+    private static void MigrateSchema(SqliteConnection connection)
+    {
+        var currentVersion = GetSchemaVersion(connection);
+
+        // Version 0 → 1: Items テーブルに SortOrder カラムがない場合は追加
+        if (currentVersion < 1)
+        {
+            using var pragmaCmd = connection.CreateCommand();
+            pragmaCmd.CommandText = "PRAGMA table_info(Items);";
+            using var reader = pragmaCmd.ExecuteReader();
+
+            var hasSortOrder = false;
+            while (reader.Read())
+            {
+                if (reader.GetString(1) == "SortOrder")
+                {
+                    hasSortOrder = true;
+                    break;
+                }
+            }
+            reader.Close();
+
+            if (!hasSortOrder)
+            {
+                using var alterCmd = connection.CreateCommand();
+                alterCmd.CommandText = "ALTER TABLE Items ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0;";
+                alterCmd.ExecuteNonQuery();
+            }
+
+            SetSchemaVersion(connection, 1);
+        }
+
+        // 今後のマイグレーションはここに追加:
+        // if (currentVersion < 2) { ... SetSchemaVersion(connection, 2); }
     }
 
     public void Dispose()

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Data.Sqlite;
 using Shelfy.Core.Domain.Entities;
 using Shelfy.Core.Ports.Persistence;
@@ -23,7 +24,7 @@ public class SqliteItemRepository : IItemRepository
 
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT Id, ShelfId, Type, Target, DisplayName, Memo, CreatedAt, LastAccessedAt 
+            SELECT Id, ShelfId, Type, Target, DisplayName, Memo, SortOrder, CreatedAt, LastAccessedAt 
             FROM Items WHERE Id = @Id
             """;
         command.Parameters.AddWithValue("@Id", id.Value.ToString());
@@ -42,8 +43,8 @@ public class SqliteItemRepository : IItemRepository
 
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT Id, ShelfId, Type, Target, DisplayName, Memo, CreatedAt, LastAccessedAt 
-            FROM Items WHERE ShelfId = @ShelfId
+            SELECT Id, ShelfId, Type, Target, DisplayName, Memo, SortOrder, CreatedAt, LastAccessedAt 
+            FROM Items WHERE ShelfId = @ShelfId ORDER BY SortOrder, DisplayName
             """;
         command.Parameters.AddWithValue("@ShelfId", shelfId.Value.ToString());
 
@@ -64,13 +65,14 @@ public class SqliteItemRepository : IItemRepository
 
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT Id, ShelfId, Type, Target, DisplayName, Memo, CreatedAt, LastAccessedAt 
+            SELECT Id, ShelfId, Type, Target, DisplayName, Memo, SortOrder, CreatedAt, LastAccessedAt 
             FROM Items 
-            WHERE DisplayName LIKE @Query 
-               OR Target LIKE @Query 
-               OR Memo LIKE @Query
+            WHERE DisplayName LIKE @Query ESCAPE '\'
+               OR Target LIKE @Query ESCAPE '\'
+               OR Memo LIKE @Query ESCAPE '\'
             """;
-        command.Parameters.AddWithValue("@Query", $"%{query}%");
+        var escaped = query.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+        command.Parameters.AddWithValue("@Query", $"%{escaped}%");
 
         var items = new List<Item>();
         using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -89,7 +91,7 @@ public class SqliteItemRepository : IItemRepository
 
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT Id, ShelfId, Type, Target, DisplayName, Memo, CreatedAt, LastAccessedAt 
+            SELECT Id, ShelfId, Type, Target, DisplayName, Memo, SortOrder, CreatedAt, LastAccessedAt 
             FROM Items 
             WHERE LastAccessedAt IS NOT NULL
             ORDER BY LastAccessedAt DESC
@@ -114,7 +116,7 @@ public class SqliteItemRepository : IItemRepository
 
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT Id, ShelfId, Type, Target, DisplayName, Memo, CreatedAt, LastAccessedAt 
+            SELECT Id, ShelfId, Type, Target, DisplayName, Memo, SortOrder, CreatedAt, LastAccessedAt 
             FROM Items
             """;
 
@@ -135,8 +137,8 @@ public class SqliteItemRepository : IItemRepository
 
         using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO Items (Id, ShelfId, Type, Target, DisplayName, Memo, CreatedAt, LastAccessedAt)
-            VALUES (@Id, @ShelfId, @Type, @Target, @DisplayName, @Memo, @CreatedAt, @LastAccessedAt)
+            INSERT INTO Items (Id, ShelfId, Type, Target, DisplayName, Memo, SortOrder, CreatedAt, LastAccessedAt)
+            VALUES (@Id, @ShelfId, @Type, @Target, @DisplayName, @Memo, @SortOrder, @CreatedAt, @LastAccessedAt)
             """;
         command.Parameters.AddWithValue("@Id", item.Id.Value.ToString());
         command.Parameters.AddWithValue("@ShelfId", item.ShelfId.Value.ToString());
@@ -144,6 +146,7 @@ public class SqliteItemRepository : IItemRepository
         command.Parameters.AddWithValue("@Target", item.Target);
         command.Parameters.AddWithValue("@DisplayName", item.DisplayName);
         command.Parameters.AddWithValue("@Memo", item.Memo ?? (object)DBNull.Value);
+        command.Parameters.AddWithValue("@SortOrder", item.SortOrder);
         command.Parameters.AddWithValue("@CreatedAt", item.CreatedAt.ToString("O"));
         command.Parameters.AddWithValue("@LastAccessedAt", item.LastAccessedAt?.ToString("O") ?? (object)DBNull.Value);
 
@@ -159,7 +162,7 @@ public class SqliteItemRepository : IItemRepository
         command.CommandText = """
             UPDATE Items 
             SET ShelfId = @ShelfId, Type = @Type, Target = @Target, 
-                DisplayName = @DisplayName, Memo = @Memo, 
+                DisplayName = @DisplayName, Memo = @Memo, SortOrder = @SortOrder,
                 CreatedAt = @CreatedAt, LastAccessedAt = @LastAccessedAt
             WHERE Id = @Id
             """;
@@ -169,6 +172,7 @@ public class SqliteItemRepository : IItemRepository
         command.Parameters.AddWithValue("@Target", item.Target);
         command.Parameters.AddWithValue("@DisplayName", item.DisplayName);
         command.Parameters.AddWithValue("@Memo", item.Memo ?? (object)DBNull.Value);
+        command.Parameters.AddWithValue("@SortOrder", item.SortOrder);
         command.Parameters.AddWithValue("@CreatedAt", item.CreatedAt.ToString("O"));
         command.Parameters.AddWithValue("@LastAccessedAt", item.LastAccessedAt?.ToString("O") ?? (object)DBNull.Value);
 
@@ -187,6 +191,18 @@ public class SqliteItemRepository : IItemRepository
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    public async Task DeleteByShelfIdAsync(ShelfId shelfId, CancellationToken cancellationToken = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM Items WHERE ShelfId = @ShelfId";
+        command.Parameters.AddWithValue("@ShelfId", shelfId.Value.ToString());
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     private static Item MapToItem(SqliteDataReader reader)
     {
         var id = new ItemId(Guid.Parse(reader.GetString(0)));
@@ -195,10 +211,11 @@ public class SqliteItemRepository : IItemRepository
         var target = reader.GetString(3);
         var displayName = reader.GetString(4);
         var memo = reader.IsDBNull(5) ? null : reader.GetString(5);
-        var createdAt = DateTime.Parse(reader.GetString(6));
-        var lastAccessedAtStr = reader.IsDBNull(7) ? null : reader.GetString(7);
-        var lastAccessedAt = lastAccessedAtStr != null ? DateTime.Parse(lastAccessedAtStr) : (DateTime?)null;
+        var sortOrder = reader.GetInt32(6);
+        var createdAt = DateTime.Parse(reader.GetString(7), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        var lastAccessedAtStr = reader.IsDBNull(8) ? null : reader.GetString(8);
+        var lastAccessedAt = lastAccessedAtStr != null ? DateTime.Parse(lastAccessedAtStr, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind) : (DateTime?)null;
 
-        return new Item(id, shelfId, type, target, displayName, memo, createdAt, lastAccessedAt);
+        return new Item(id, shelfId, type, target, displayName, createdAt, memo, sortOrder, lastAccessedAt);
     }
 }

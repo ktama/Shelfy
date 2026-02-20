@@ -49,12 +49,16 @@ public class AddItemUseCase
             return new AddItemResult.ShelfNotFound(shelfId);
         }
 
-        // 重複チェック（同一Shelf内で同一参照は不可）
+        // 重複チェック（同一Shelf内で同一参照は不可、ファイルパスは大文字小文字無視）
         var existingItems = await _itemRepository.GetByShelfIdAsync(shelfId, cancellationToken);
-        if (existingItems.Any(i => i.Type == type && i.Target == target))
+        if (existingItems.Any(i => i.Type == type && string.Equals(i.Target, target,
+            type == ItemType.Url ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)))
         {
             return new AddItemResult.DuplicateItem($"An item with the same type and target already exists in this shelf.");
         }
+
+        // 新しいアイテムの SortOrder を既存の最大値 + 1 に設定
+        var maxSortOrder = existingItems.Count > 0 ? existingItems.Max(i => i.SortOrder) + 1 : 0;
 
         var item = new Item(
             id: ItemId.New(),
@@ -62,8 +66,9 @@ public class AddItemUseCase
             type: type,
             target: target,
             displayName: displayName,
+            createdAt: _clock.UtcNow,
             memo: memo,
-            createdAt: _clock.UtcNow
+            sortOrder: maxSortOrder
         );
 
         await _itemRepository.AddAsync(item, cancellationToken);

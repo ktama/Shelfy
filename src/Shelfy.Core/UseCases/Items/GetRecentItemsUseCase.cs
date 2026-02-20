@@ -23,28 +23,21 @@ public class GetRecentItemsUseCase
         int? count = null,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var takeCount = count ?? DefaultCount;
+        var takeCount = count ?? DefaultCount;
 
-            // 最近アクセスしたアイテムを取得
-            var recentItems = await _itemRepository.GetRecentAsync(takeCount, cancellationToken);
+        // 最近アクセスしたアイテムを取得
+        var recentItems = await _itemRepository.GetRecentAsync(takeCount, cancellationToken);
 
-            // Shelf 名をマッピング
-            var allShelves = await _shelfRepository.GetAllAsync(cancellationToken);
-            var shelfMap = allShelves.ToDictionary(s => s.Id, s => s.Name);
+        // Shelf 名をマッピング
+        var allShelves = await _shelfRepository.GetAllAsync(cancellationToken);
+        var shelfMap = allShelves.ToDictionary(s => s.Id, s => s.Name);
 
-            var resultItems = recentItems
-                .Select(item => new RecentItemInfo(
-                    item,
-                    shelfMap.TryGetValue(item.ShelfId, out var name) ? name : "Unknown"))
-                .ToList();
+        var resultItems = recentItems
+            .Select(item => new RecentItemInfo(
+                item,
+                shelfMap.TryGetValue(item.ShelfId, out var name) ? name : "Unknown"))
+            .ToList();
 
-            return new GetRecentItemsResult.Success(resultItems);
-        }
-        catch (Exception ex)
-        {
-            return new GetRecentItemsResult.Error(ex.Message);
-        }
+        return new GetRecentItemsResult.Success(resultItems);
     }
 }

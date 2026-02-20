@@ -28,7 +28,8 @@ public class OpenParentFolderUseCaseTests
             shelfId,
             ItemType.File,
             @"C:\folder\test.txt",
-            "Test File");
+            "Test File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act
@@ -49,7 +50,8 @@ public class OpenParentFolderUseCaseTests
             shelfId,
             ItemType.Folder,
             @"C:\folder\subfolder",
-            "Test Folder");
+            "Test Folder",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act
@@ -69,7 +71,8 @@ public class OpenParentFolderUseCaseTests
             shelfId,
             ItemType.Url,
             "https://example.com",
-            "Example");
+            "Example",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act
@@ -102,7 +105,8 @@ public class OpenParentFolderUseCaseTests
             shelfId,
             ItemType.File,
             @"C:\folder\test.txt",
-            "Test File");
+            "Test File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
         _itemLauncher.OpenParentFolderShouldSucceed = false;
 

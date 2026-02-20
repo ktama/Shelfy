@@ -18,21 +18,24 @@ public partial class ShelfViewModel : ObservableObject
     private bool _isPinned;
 
     [ObservableProperty]
+    private int _sortOrder;
+
+    [ObservableProperty]
     private bool _isExpanded;
 
     [ObservableProperty]
     private bool _isSelected;
 
-    public ShelfId? ParentId { get; }
+    public ShelfId? ParentId { get; private set; }
 
     public ObservableCollectionEx<ShelfViewModel> Children { get; } = [];
-    public ObservableCollectionEx<ItemViewModel> Items { get; } = [];
 
     public ShelfViewModel(Shelf shelf)
     {
         _id = shelf.Id;
         _name = shelf.Name;
         _isPinned = shelf.IsPinned;
+        _sortOrder = shelf.SortOrder;
         ParentId = shelf.ParentId;
     }
 
@@ -41,5 +44,7 @@ public partial class ShelfViewModel : ObservableObject
         Id = shelf.Id;
         Name = shelf.Name;
         IsPinned = shelf.IsPinned;
+        SortOrder = shelf.SortOrder;
+        ParentId = shelf.ParentId;
     }
 }

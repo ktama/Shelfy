@@ -11,5 +11,4 @@ public abstract record TogglePinShelfResult
 
     public sealed record Success(Shelf Shelf) : TogglePinShelfResult;
     public sealed record NotFound(ShelfId ShelfId) : TogglePinShelfResult;
-    public sealed record Error(string Message) : TogglePinShelfResult;
 }

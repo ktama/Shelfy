@@ -21,7 +21,6 @@ public class ShelfTests
         Assert.Null(shelf.ParentId);
         Assert.Equal(0, shelf.SortOrder);
         Assert.False(shelf.IsPinned);
-        Assert.Empty(shelf.Items);
     }
 
     [Theory]
@@ -130,75 +129,5 @@ public class ShelfTests
 
         // Assert
         Assert.False(shelf.IsPinned);
-    }
-
-    [Fact]
-    public void AddItem_AddsItemToCollection()
-    {
-        // Arrange
-        var shelf = new Shelf(ShelfId.New(), "Test Shelf");
-        var item = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test.txt", "Test File");
-
-        // Act
-        shelf.AddItem(item);
-
-        // Assert
-        Assert.Single(shelf.Items);
-        Assert.Contains(item, shelf.Items);
-    }
-
-    [Fact]
-    public void AddItem_WithDuplicateReference_ThrowsException()
-    {
-        // Arrange
-        var shelf = new Shelf(ShelfId.New(), "Test Shelf");
-        var item1 = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test.txt", "Test File 1");
-        var item2 = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test.txt", "Test File 2");
-        shelf.AddItem(item1);
-
-        // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => shelf.AddItem(item2));
-    }
-
-    [Fact]
-    public void AddItem_WithSameTargetDifferentType_Succeeds()
-    {
-        // Arrange
-        var shelf = new Shelf(ShelfId.New(), "Test Shelf");
-        var fileItem = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test", "Test File");
-        var folderItem = new Item(ItemId.New(), shelf.Id, ItemType.Folder, @"C:\test", "Test Folder");
-        shelf.AddItem(fileItem);
-
-        // Act
-        shelf.AddItem(folderItem);
-
-        // Assert
-        Assert.Equal(2, shelf.Items.Count);
-    }
-
-    [Fact]
-    public void RemoveItem_RemovesItemFromCollection()
-    {
-        // Arrange
-        var shelf = new Shelf(ShelfId.New(), "Test Shelf");
-        var item = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test.txt", "Test File");
-        shelf.AddItem(item);
-
-        // Act
-        shelf.RemoveItem(item.Id);
-
-        // Assert
-        Assert.Empty(shelf.Items);
-    }
-
-    [Fact]
-    public void RemoveItem_WithNonExistentId_DoesNotThrow()
-    {
-        // Arrange
-        var shelf = new Shelf(ShelfId.New(), "Test Shelf");
-        var nonExistentId = ItemId.New();
-
-        // Act & Assert (should not throw)
-        shelf.RemoveItem(nonExistentId);
     }
 }

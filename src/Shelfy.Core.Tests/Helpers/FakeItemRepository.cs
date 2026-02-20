@@ -20,6 +20,8 @@ public class FakeItemRepository : IItemRepository
     {
         var items = _items.Values
             .Where(i => i.ShelfId == shelfId)
+            .OrderBy(i => i.SortOrder)
+            .ThenBy(i => i.DisplayName)
             .ToList();
         return Task.FromResult<IReadOnlyList<Item>>(items);
     }
@@ -65,6 +67,16 @@ public class FakeItemRepository : IItemRepository
     public Task DeleteAsync(ItemId id, CancellationToken cancellationToken = default)
     {
         _items.Remove(id);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteByShelfIdAsync(ShelfId shelfId, CancellationToken cancellationToken = default)
+    {
+        var keysToRemove = _items.Where(kv => kv.Value.ShelfId == shelfId).Select(kv => kv.Key).ToList();
+        foreach (var key in keysToRemove)
+        {
+            _items.Remove(key);
+        }
         return Task.CompletedTask;
     }
 

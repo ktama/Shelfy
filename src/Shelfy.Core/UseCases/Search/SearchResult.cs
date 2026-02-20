@@ -10,7 +10,6 @@ public abstract record SearchResult
     private SearchResult() { }
 
     public sealed record Success(IReadOnlyList<SearchResultItem> Items) : SearchResult;
-    public sealed record Error(string Message) : SearchResult;
 }
 
 /// <summary>

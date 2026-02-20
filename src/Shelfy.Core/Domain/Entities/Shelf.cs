@@ -11,10 +11,6 @@ public class Shelf
     public int SortOrder { get; private set; }
     public bool IsPinned { get; private set; }
 
-    private readonly List<Item> _items = [];
-
-    public IReadOnlyList<Item> Items => _items.AsReadOnly();
-
     public Shelf(ShelfId id, string name, ShelfId? parentId = null, int sortOrder = 0, bool isPinned = false)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -47,19 +43,4 @@ public class Shelf
 
     public void Pin() => IsPinned = true;
     public void Unpin() => IsPinned = false;
-
-    public void AddItem(Item item)
-    {
-        if (_items.Any(i => i.Type == item.Type && i.Target == item.Target))
-            throw new InvalidOperationException("Duplicate item reference in the same shelf.");
-
-        _items.Add(item);
-    }
-
-    public void RemoveItem(ItemId itemId)
-    {
-        var item = _items.FirstOrDefault(i => i.Id == itemId);
-        if (item != null)
-            _items.Remove(item);
-    }
 }

@@ -5,9 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Application = System.Windows.Application;
 using Shelfy.App.ViewModels;
-using Shelfy.Core.UseCases.Items;
-using Shelfy.Core.UseCases.Launch;
-using Shelfy.Core.UseCases.Shelves;
+using Shelfy.Core.Ports.Persistence;
+using Shelfy.Core.Ports.System;
 using Shelfy.Infrastructure;
 
 namespace Shelfy.App;
@@ -41,15 +40,6 @@ public partial class App : Application
         // Shelfy のサービスを登録
         services.AddShelfy(databasePath);
 
-        // UseCases
-        services.AddTransient<CreateShelfUseCase>();
-        services.AddTransient<RenameShelfUseCase>();
-        services.AddTransient<DeleteShelfUseCase>();
-        services.AddTransient<AddItemUseCase>();
-        services.AddTransient<RemoveItemUseCase>();
-        services.AddTransient<RenameItemUseCase>();
-        services.AddTransient<LaunchItemUseCase>();
-
         // ViewModels
         services.AddTransient<MainViewModel>();
 
@@ -59,20 +49,22 @@ public partial class App : Application
 
     private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
     {
-        Console.Error.WriteLine("Dispatcher exception: " + e.Exception);
+        var logger = _serviceProvider.GetService<IAppLogger>();
+        logger?.Error("Dispatcher unhandled exception", e.Exception);
         LogException("Dispatcher", e.Exception);
     }
 
     private void OnDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        Console.Error.WriteLine("Domain exception: " + e.ExceptionObject);
+        var logger = _serviceProvider.GetService<IAppLogger>();
         if (e.ExceptionObject is Exception ex)
         {
+            logger?.Error("Domain unhandled exception", ex);
             LogException("Domain", ex);
         }
     }
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -82,16 +74,43 @@ public partial class App : Application
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            var logger = _serviceProvider.GetRequiredService<IAppLogger>();
+            var settingsRepo = _serviceProvider.GetRequiredService<ISettingsRepository>();
+
+            logger.Info("Shelfy started");
+
+            // 起動時に設定を一括読み込み
+            var allSettings = await settingsRepo.GetAllAsync();
+            allSettings.TryGetValue(SettingKeys.GlobalHotkey, out var hotkeySetting);
+            allSettings.TryGetValue(SettingKeys.StartMinimized, out var startMinStr);
+            allSettings.TryGetValue(SettingKeys.WindowWidth, out var windowWidthStr);
+            allSettings.TryGetValue(SettingKeys.WindowHeight, out var windowHeightStr);
+
+            // ウィンドウサイズとホットキー設定を適用
+            mainWindow.ApplyStartupSettings(hotkeySetting, windowWidthStr, windowHeightStr);
+
+            // HotkeyHoldState に実際のホットキー修飾キーを設定
+            var hotkeyHoldState = _serviceProvider.GetRequiredService<IHotkeyHoldState>();
+            hotkeyHoldState.ConfigureFromHotkeyString(hotkeySetting ?? "Ctrl+Shift+Space");
 
             // タスクトレイアイコンを初期化
             _trayIcon = new TrayIcon(mainWindow);
             _trayIcon.Initialize();
 
-            mainWindow.Show();
+            // Start minimized が有効でない場合のみウィンドウを表示
+            if (startMinStr != "true")
+            {
+                mainWindow.Show();
+            }
+            else
+            {
+                logger.Info("Starting minimized to system tray");
+            }
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine("Startup exception: " + ex);
+            var logger = _serviceProvider.GetService<IAppLogger>();
+            logger?.Error("Startup exception", ex);
             LogException("Startup", ex);
             throw;
         }
@@ -99,6 +118,9 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        var logger = _serviceProvider.GetService<IAppLogger>();
+        logger?.Info("Shelfy exiting");
+
         _trayIcon?.Dispose();
         _serviceProvider.Dispose();
         base.OnExit(e);

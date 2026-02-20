@@ -23,9 +23,30 @@ public partial class Win32HotkeyHoldState : IHotkeyHoldState
 
     /// <summary>
     /// 登録されているホットキーの修飾キー
-    /// デフォルトは Win + Space を想定
+    /// デフォルトは Ctrl+Shift（GlobalHotkey のデフォルトと一致）
     /// </summary>
-    public ModifierKeys HotkeyModifiers { get; set; } = ModifierKeys.Win;
+    public HotkeyModifierKeys HotkeyModifiers { get; set; } = HotkeyModifierKeys.Control | HotkeyModifierKeys.Shift;
+
+    /// <summary>
+    /// ホットキー文字列からの修飾キー設定
+    /// </summary>
+    public void ConfigureFromHotkeyString(string hotkeyString)
+    {
+        var modifiers = HotkeyModifierKeys.None;
+        var parts = hotkeyString.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var part in parts)
+        {
+            switch (part.ToLowerInvariant())
+            {
+                case "ctrl": case "control": modifiers |= HotkeyModifierKeys.Control; break;
+                case "shift": modifiers |= HotkeyModifierKeys.Shift; break;
+                case "alt": modifiers |= HotkeyModifierKeys.Alt; break;
+                case "win": case "windows": modifiers |= HotkeyModifierKeys.Win; break;
+            }
+        }
+        if (modifiers != HotkeyModifierKeys.None)
+            HotkeyModifiers = modifiers;
+    }
 
     /// <summary>
     /// ホットキーが現在押下されているかどうか
@@ -34,29 +55,29 @@ public partial class Win32HotkeyHoldState : IHotkeyHoldState
 
     private bool CheckModifiersHeld()
     {
-        if (HotkeyModifiers == ModifierKeys.None)
+        if (HotkeyModifiers == HotkeyModifierKeys.None)
             return false;
 
         // 各修飾キーの押下状態をチェック
-        if (HotkeyModifiers.HasFlag(ModifierKeys.Win))
+        if (HotkeyModifiers.HasFlag(HotkeyModifierKeys.Win))
         {
             if (!IsKeyPressed(VK_LWIN) && !IsKeyPressed(VK_RWIN))
                 return false;
         }
 
-        if (HotkeyModifiers.HasFlag(ModifierKeys.Control))
+        if (HotkeyModifiers.HasFlag(HotkeyModifierKeys.Control))
         {
             if (!IsKeyPressed(VK_CONTROL))
                 return false;
         }
 
-        if (HotkeyModifiers.HasFlag(ModifierKeys.Shift))
+        if (HotkeyModifiers.HasFlag(HotkeyModifierKeys.Shift))
         {
             if (!IsKeyPressed(VK_SHIFT))
                 return false;
         }
 
-        if (HotkeyModifiers.HasFlag(ModifierKeys.Alt))
+        if (HotkeyModifiers.HasFlag(HotkeyModifierKeys.Alt))
         {
             if (!IsKeyPressed(VK_MENU))
                 return false;
@@ -75,7 +96,7 @@ public partial class Win32HotkeyHoldState : IHotkeyHoldState
 /// 修飾キーのフラグ
 /// </summary>
 [Flags]
-public enum ModifierKeys
+public enum HotkeyModifierKeys
 {
     None = 0,
     Control = 1,

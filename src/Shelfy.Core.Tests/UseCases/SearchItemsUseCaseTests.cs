@@ -43,7 +43,8 @@ public class SearchItemsUseCaseTests
             shelfId,
             ItemType.File,
             @"C:\test\document.txt",
-            "Important Document");
+            "Important Document",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act
@@ -70,7 +71,8 @@ public class SearchItemsUseCaseTests
             shelfId,
             ItemType.File,
             @"C:\projects\myapp\readme.md",
-            "Readme");
+            "Readme",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act
@@ -95,7 +97,8 @@ public class SearchItemsUseCaseTests
             shelfId,
             ItemType.File,
             @"C:\test\file.txt",
-            "Test File");
+            "Test File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(fileItem);
 
         var folderItem = new Item(
@@ -103,7 +106,8 @@ public class SearchItemsUseCaseTests
             shelfId,
             ItemType.Folder,
             @"C:\test\folder",
-            "Test Folder");
+            "Test Folder",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(folderItem);
 
         // Act

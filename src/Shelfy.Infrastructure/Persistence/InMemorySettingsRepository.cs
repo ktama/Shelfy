@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Shelfy.Core.Ports.Persistence;
 
 namespace Shelfy.Infrastructure.Persistence;
@@ -7,7 +8,7 @@ namespace Shelfy.Infrastructure.Persistence;
 /// </summary>
 public class InMemorySettingsRepository : ISettingsRepository
 {
-    private readonly Dictionary<string, string> _settings = new();
+    private readonly ConcurrentDictionary<string, string> _settings = new();
 
     public Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
@@ -23,7 +24,7 @@ public class InMemorySettingsRepository : ISettingsRepository
 
     public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
     {
-        _settings.Remove(key);
+        _settings.TryRemove(key, out _);
         return Task.CompletedTask;
     }
 

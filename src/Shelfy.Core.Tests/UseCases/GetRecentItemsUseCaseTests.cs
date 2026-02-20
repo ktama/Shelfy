@@ -44,6 +44,7 @@ public class GetRecentItemsUseCaseTests
             ItemType.File,
             @"C:\old.txt",
             "Old File",
+            DateTime.UtcNow,
             lastAccessedAt: DateTime.UtcNow.AddDays(-5));
         await _itemRepository.AddAsync(oldItem);
 
@@ -53,6 +54,7 @@ public class GetRecentItemsUseCaseTests
             ItemType.File,
             @"C:\recent.txt",
             "Recent File",
+            DateTime.UtcNow,
             lastAccessedAt: DateTime.UtcNow.AddHours(-1));
         await _itemRepository.AddAsync(recentItem);
 
@@ -83,6 +85,7 @@ public class GetRecentItemsUseCaseTests
                 ItemType.File,
                 $@"C:\file{i}.txt",
                 $"File {i}",
+                DateTime.UtcNow,
                 lastAccessedAt: DateTime.UtcNow.AddHours(-i));
             await _itemRepository.AddAsync(item);
         }
@@ -110,6 +113,7 @@ public class GetRecentItemsUseCaseTests
             ItemType.File,
             @"C:\accessed.txt",
             "Accessed File",
+            DateTime.UtcNow,
             lastAccessedAt: DateTime.UtcNow);
         await _itemRepository.AddAsync(accessedItem);
 
@@ -118,7 +122,8 @@ public class GetRecentItemsUseCaseTests
             shelfId,
             ItemType.File,
             @"C:\never.txt",
-            "Never Accessed File");
+            "Never Accessed File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(neverAccessedItem);
 
         // Act

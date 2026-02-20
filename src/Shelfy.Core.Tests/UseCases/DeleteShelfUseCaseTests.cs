@@ -53,8 +53,8 @@ public class DeleteShelfUseCaseTests
         var shelf = new Shelf(ShelfId.New(), "Test Shelf");
         await _shelfRepository.AddAsync(shelf);
 
-        var item1 = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test1.txt", "File 1");
-        var item2 = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test2.txt", "File 2");
+        var item1 = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test1.txt", "File 1", DateTime.UtcNow);
+        var item2 = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test2.txt", "File 2", DateTime.UtcNow);
         await _itemRepository.AddAsync(item1);
         await _itemRepository.AddAsync(item2);
 
@@ -95,8 +95,8 @@ public class DeleteShelfUseCaseTests
         var childShelf = new Shelf(ShelfId.New(), "Child Shelf", parentShelf.Id);
         await _shelfRepository.AddAsync(childShelf);
 
-        var parentItem = new Item(ItemId.New(), parentShelf.Id, ItemType.File, @"C:\parent.txt", "Parent File");
-        var childItem = new Item(ItemId.New(), childShelf.Id, ItemType.File, @"C:\child.txt", "Child File");
+        var parentItem = new Item(ItemId.New(), parentShelf.Id, ItemType.File, @"C:\parent.txt", "Parent File", DateTime.UtcNow);
+        var childItem = new Item(ItemId.New(), childShelf.Id, ItemType.File, @"C:\child.txt", "Child File", DateTime.UtcNow);
         await _itemRepository.AddAsync(parentItem);
         await _itemRepository.AddAsync(childItem);
 

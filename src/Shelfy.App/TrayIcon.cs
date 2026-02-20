@@ -1,8 +1,3 @@
-using System.Drawing;
-using System.Windows;
-using System.Windows.Forms;
-using Application = System.Windows.Application;
-
 namespace Shelfy.App;
 
 /// <summary>
@@ -54,6 +49,7 @@ public class TrayIcon : IDisposable
         if (_notifyIcon is not null)
         {
             _notifyIcon.Visible = false;
+            _notifyIcon.ContextMenuStrip?.Dispose();
             _notifyIcon.Dispose();
             _notifyIcon = null;
         }

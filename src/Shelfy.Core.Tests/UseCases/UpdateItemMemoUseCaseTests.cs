@@ -26,8 +26,7 @@ public class UpdateItemMemoUseCaseTests
             shelfId,
             ItemType.File,
             @"C:\test.txt",
-            "Test File",
-            "Old memo");
+            "Test File", DateTime.UtcNow, "Old memo");
         await _itemRepository.AddAsync(item);
 
         // Act
@@ -50,6 +49,7 @@ public class UpdateItemMemoUseCaseTests
             ItemType.File,
             @"C:\test.txt",
             "Test File",
+            DateTime.UtcNow,
             "Existing memo");
         await _itemRepository.AddAsync(item);
 
@@ -73,6 +73,7 @@ public class UpdateItemMemoUseCaseTests
             ItemType.File,
             @"C:\test.txt",
             "Test File",
+            DateTime.UtcNow,
             "Existing memo");
         await _itemRepository.AddAsync(item);
 

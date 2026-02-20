@@ -8,4 +8,6 @@ namespace Shelfy.Core.Tests.Helpers;
 public class FakeHotkeyHoldState : IHotkeyHoldState
 {
     public bool IsHotkeyHeld { get; set; } = false;
+    public string? LastConfiguredHotkeyString { get; private set; }
+    public void ConfigureFromHotkeyString(string hotkeyString) => LastConfiguredHotkeyString = hotkeyString;
 }

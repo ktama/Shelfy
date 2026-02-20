@@ -10,7 +10,6 @@ public abstract record GetRecentItemsResult
     private GetRecentItemsResult() { }
 
     public sealed record Success(IReadOnlyList<RecentItemInfo> Items) : GetRecentItemsResult;
-    public sealed record Error(string Message) : GetRecentItemsResult;
 }
 
 /// <summary>

@@ -10,7 +10,6 @@ public abstract record GetMissingItemsResult
     private GetMissingItemsResult() { }
 
     public sealed record Success(IReadOnlyList<MissingItemInfo> Items) : GetMissingItemsResult;
-    public sealed record Error(string Message) : GetMissingItemsResult;
 }
 
 /// <summary>

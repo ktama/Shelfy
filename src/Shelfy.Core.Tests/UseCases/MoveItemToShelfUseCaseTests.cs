@@ -32,7 +32,8 @@ public class MoveItemToShelfUseCaseTests
             sourceShelf.Id,
             ItemType.File,
             @"C:\test.txt",
-            "Test File");
+            "Test File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act
@@ -56,7 +57,8 @@ public class MoveItemToShelfUseCaseTests
             shelf.Id,
             ItemType.File,
             @"C:\test.txt",
-            "Test File");
+            "Test File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act
@@ -95,7 +97,8 @@ public class MoveItemToShelfUseCaseTests
             sourceShelf.Id,
             ItemType.File,
             @"C:\test.txt",
-            "Test File");
+            "Test File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
         var nonExistentShelfId = ShelfId.New();
 
@@ -120,7 +123,8 @@ public class MoveItemToShelfUseCaseTests
             targetShelf.Id,
             ItemType.File,
             @"C:\test.txt",
-            "Existing File");
+            "Existing File",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(existingItem);
 
         var itemToMove = new Item(
@@ -128,7 +132,8 @@ public class MoveItemToShelfUseCaseTests
             sourceShelf.Id,
             ItemType.File,
             @"C:\test.txt",  // Same target as existingItem
-            "File to Move");
+            "File to Move",
+            DateTime.UtcNow);
         await _itemRepository.AddAsync(itemToMove);
 
         // Act

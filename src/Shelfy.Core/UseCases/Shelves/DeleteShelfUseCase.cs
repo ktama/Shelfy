@@ -46,12 +46,8 @@ public class DeleteShelfUseCase
             await DeleteRecursiveAsync(child.Id, cancellationToken);
         }
 
-        // このShelfのItemを削除
-        var items = await _itemRepository.GetByShelfIdAsync(shelfId, cancellationToken);
-        foreach (var item in items)
-        {
-            await _itemRepository.DeleteAsync(item.Id, cancellationToken);
-        }
+        // このShelfのItemを一括削除
+        await _itemRepository.DeleteByShelfIdAsync(shelfId, cancellationToken);
 
         // Shelf自体を削除
         await _shelfRepository.DeleteAsync(shelfId, cancellationToken);

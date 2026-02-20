@@ -138,7 +138,7 @@ public class AddItemUseCaseTests
         var shelf = new Shelf(ShelfId.New(), "Test Shelf");
         await _shelfRepository.AddAsync(shelf);
 
-        var existingItem = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test.txt", "Existing File");
+        var existingItem = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test.txt", "Existing File", DateTime.UtcNow);
         await _itemRepository.AddAsync(existingItem);
 
         // Act
@@ -160,7 +160,7 @@ public class AddItemUseCaseTests
         var shelf = new Shelf(ShelfId.New(), "Test Shelf");
         await _shelfRepository.AddAsync(shelf);
 
-        var existingItem = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test", "Existing File");
+        var existingItem = new Item(ItemId.New(), shelf.Id, ItemType.File, @"C:\test", "Existing File", DateTime.UtcNow);
         await _itemRepository.AddAsync(existingItem);
 
         // Act

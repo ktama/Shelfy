@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Shelfy.Core.Ports.Persistence;
 using Shelfy.Core.Ports.System;
+using Shelfy.Core.UseCases.DataTransfer;
 using Shelfy.Core.UseCases.Items;
 using Shelfy.Core.UseCases.Launch;
 using Shelfy.Core.UseCases.Search;
@@ -28,36 +29,17 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IExistenceChecker, FileExistenceChecker>();
         services.AddSingleton<IItemLauncher, Win32ItemLauncher>();
         services.AddSingleton<IHotkeyHoldState, Win32HotkeyHoldState>();
+        services.AddSingleton<IAppLogger, FileAppLogger>();
 
         // Ports - Persistence (SQLite)
         services.AddSingleton(_ => new SqliteConnectionFactory(dbPath));
         services.AddSingleton<IShelfRepository, SqliteShelfRepository>();
         services.AddSingleton<IItemRepository, SqliteItemRepository>();
         services.AddSingleton<ISettingsRepository, SqliteSettingsRepository>();
+        services.AddSingleton<IDataSerializer, DataSerializer>();
 
-        // UseCases - Shelves
-        services.AddTransient<CreateShelfUseCase>();
-        services.AddTransient<RenameShelfUseCase>();
-        services.AddTransient<DeleteShelfUseCase>();
-        services.AddTransient<TogglePinShelfUseCase>();
-        services.AddTransient<MoveShelfUseCase>();
-        services.AddTransient<ReorderShelvesUseCase>();
-
-        // UseCases - Items
-        services.AddTransient<AddItemUseCase>();
-        services.AddTransient<RemoveItemUseCase>();
-        services.AddTransient<RenameItemUseCase>();
-        services.AddTransient<GetRecentItemsUseCase>();
-        services.AddTransient<GetMissingItemsUseCase>();
-        services.AddTransient<UpdateItemMemoUseCase>();
-        services.AddTransient<MoveItemToShelfUseCase>();
-
-        // UseCases - Launch
-        services.AddTransient<LaunchItemUseCase>();
-        services.AddTransient<OpenParentFolderUseCase>();
-
-        // UseCases - Search
-        services.AddTransient<SearchItemsUseCase>();
+        // UseCases
+        AddUseCases(services);
 
         return services;
     }
@@ -72,13 +54,23 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IExistenceChecker, FileExistenceChecker>();
         services.AddSingleton<IItemLauncher, Win32ItemLauncher>();
         services.AddSingleton<IHotkeyHoldState, Win32HotkeyHoldState>();
+        services.AddSingleton<IAppLogger, FileAppLogger>();
 
         // Ports - Persistence (InMemory)
         services.AddSingleton<IShelfRepository, InMemoryShelfRepository>();
         services.AddSingleton<IItemRepository, InMemoryItemRepository>();
         services.AddSingleton<ISettingsRepository, InMemorySettingsRepository>();
+        services.AddSingleton<IDataSerializer, DataSerializer>();
 
-        // UseCases - Shelves
+        // UseCases
+        AddUseCases(services);
+
+        return services;
+    }
+
+    private static void AddUseCases(IServiceCollection services)
+    {
+        // Shelves
         services.AddTransient<CreateShelfUseCase>();
         services.AddTransient<RenameShelfUseCase>();
         services.AddTransient<DeleteShelfUseCase>();
@@ -86,7 +78,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<MoveShelfUseCase>();
         services.AddTransient<ReorderShelvesUseCase>();
 
-        // UseCases - Items
+        // Items
         services.AddTransient<AddItemUseCase>();
         services.AddTransient<RemoveItemUseCase>();
         services.AddTransient<RenameItemUseCase>();
@@ -94,15 +86,23 @@ public static class ServiceCollectionExtensions
         services.AddTransient<GetMissingItemsUseCase>();
         services.AddTransient<UpdateItemMemoUseCase>();
         services.AddTransient<MoveItemToShelfUseCase>();
+        services.AddTransient<ReorderItemsUseCase>();
 
-        // UseCases - Launch
+        // Launch
         services.AddTransient<LaunchItemUseCase>();
         services.AddTransient<OpenParentFolderUseCase>();
 
-        // UseCases - Search
+        // Search
         services.AddTransient<SearchItemsUseCase>();
 
-        return services;
+        // DataTransfer
+        services.AddTransient<ExportDataUseCase>();
+        services.AddTransient<ImportDataUseCase>();
+
+        // UseCase Facades
+        services.AddTransient<ShelfUseCases>();
+        services.AddTransient<ItemUseCases>();
+        services.AddTransient<DataTransferUseCases>();
     }
 
     private static string GetDefaultDatabasePath()

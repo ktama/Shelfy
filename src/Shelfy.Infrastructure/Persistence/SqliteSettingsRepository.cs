@@ -13,24 +13,6 @@ public class SqliteSettingsRepository : ISettingsRepository
     public SqliteSettingsRepository(SqliteConnectionFactory connectionFactory)
     {
         _connectionFactory = connectionFactory;
-        EnsureTableExists();
-    }
-
-    private void EnsureTableExists()
-    {
-        using var connection = _connectionFactory.CreateConnection();
-        connection.Open();
-
-        const string createTableSql = """
-            CREATE TABLE IF NOT EXISTS Settings (
-                Key TEXT PRIMARY KEY,
-                Value TEXT NOT NULL
-            );
-            """;
-
-        using var command = connection.CreateCommand();
-        command.CommandText = createTableSql;
-        command.ExecuteNonQuery();
     }
 
     public async Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
@@ -89,7 +71,7 @@ public class SqliteSettingsRepository : ISettingsRepository
 
         var result = new Dictionary<string, string>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        
+
         while (await reader.ReadAsync(cancellationToken))
         {
             var key = reader.GetString(0);

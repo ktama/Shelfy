@@ -16,7 +16,7 @@ public class ItemTests
         var displayName = "Test File";
 
         // Act
-        var item = new Item(id, shelfId, type, target, displayName);
+        var item = new Item(id, shelfId, type, target, displayName, DateTime.UtcNow);
 
         // Assert
         Assert.Equal(id, item.Id);
@@ -40,7 +40,7 @@ public class ItemTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            new Item(id, shelfId, ItemType.File, invalidTarget!, "Display Name"));
+            new Item(id, shelfId, ItemType.File, invalidTarget!, "Display Name", DateTime.UtcNow));
     }
 
     [Theory]
@@ -55,7 +55,7 @@ public class ItemTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            new Item(id, shelfId, ItemType.File, @"C:\test.txt", invalidDisplayName!));
+            new Item(id, shelfId, ItemType.File, @"C:\test.txt", invalidDisplayName!, DateTime.UtcNow));
     }
 
     [Fact]
@@ -68,6 +68,7 @@ public class ItemTests
             ItemType.File,
             @"C:\test.txt",
             "Test File",
+            DateTime.UtcNow,
             memo: "This is a test memo"
         );
 
@@ -79,7 +80,7 @@ public class ItemTests
     public void Rename_WithValidName_UpdatesDisplayName()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Original Name");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Original Name", DateTime.UtcNow);
         var newName = "New Name";
 
         // Act
@@ -96,7 +97,7 @@ public class ItemTests
     public void Rename_WithInvalidName_ThrowsException(string? invalidName)
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Original Name");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Original Name", DateTime.UtcNow);
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => item.Rename(invalidName!));
@@ -106,7 +107,7 @@ public class ItemTests
     public void UpdateMemo_SetsMemo()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File", DateTime.UtcNow);
 
         // Act
         item.UpdateMemo("New memo");
@@ -119,7 +120,7 @@ public class ItemTests
     public void UpdateMemo_WithNull_ClearsMemo()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File", memo: "Original memo");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File", DateTime.UtcNow, memo: "Original memo");
 
         // Act
         item.UpdateMemo(null);
@@ -132,7 +133,7 @@ public class ItemTests
     public void MarkAccessed_UpdatesLastAccessedAt()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File", DateTime.UtcNow);
         var accessedAt = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
 
         // Act
@@ -148,7 +149,7 @@ public class ItemTests
         // Arrange
         var originalShelfId = ShelfId.New();
         var newShelfId = ShelfId.New();
-        var item = new Item(ItemId.New(), originalShelfId, ItemType.File, @"C:\test.txt", "Test File");
+        var item = new Item(ItemId.New(), originalShelfId, ItemType.File, @"C:\test.txt", "Test File", DateTime.UtcNow);
 
         // Act
         item.MoveToShelf(newShelfId);
@@ -167,9 +168,33 @@ public class ItemTests
         var target = type == ItemType.Url ? "https://example.com" : @"C:\test";
 
         // Act
-        var item = new Item(ItemId.New(), ShelfId.New(), type, target, "Test Item");
+        var item = new Item(ItemId.New(), ShelfId.New(), type, target, "Test Item", DateTime.UtcNow);
 
         // Assert
         Assert.Equal(type, item.Type);
+    }
+
+    [Fact]
+    public void SetSortOrder_UpdatesSortOrder()
+    {
+        // Arrange
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test", DateTime.UtcNow);
+        Assert.Equal(0, item.SortOrder);
+
+        // Act
+        item.SetSortOrder(5);
+
+        // Assert
+        Assert.Equal(5, item.SortOrder);
+    }
+
+    [Fact]
+    public void Constructor_WithSortOrder_SetsSortOrder()
+    {
+        // Act
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test", DateTime.UtcNow, sortOrder: 3);
+
+        // Assert
+        Assert.Equal(3, item.SortOrder);
     }
 }

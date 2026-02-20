@@ -36,19 +36,23 @@ public class MoveItemToShelfUseCase
             return new MoveItemToShelfResult.ShelfNotFound(targetShelfId);
         }
 
-        // 同一 Shelf 内で同一参照（type + target）は重複不可
+        // 同一 Shelf 内で同一参照（type + target）は重複不可（ファイルパスは大文字小文字無視）
         var existingItems = await _itemRepository.GetByShelfIdAsync(targetShelfId, cancellationToken);
-        var duplicate = existingItems.FirstOrDefault(i => 
-            i.Id != itemId && 
-            i.Type == item.Type && 
-            i.Target == item.Target);
-        
+        var duplicate = existingItems.FirstOrDefault(i =>
+            i.Id != itemId &&
+            i.Type == item.Type &&
+            string.Equals(i.Target, item.Target,
+                item.Type == ItemType.Url ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
+
         if (duplicate is not null)
         {
             return new MoveItemToShelfResult.DuplicateItem(
                 $"An item with the same reference already exists in the target shelf.");
         }
 
+        // 移動先の既存アイテム最大 SortOrder + 1 を設定
+        var maxSortOrder = existingItems.Count > 0 ? existingItems.Max(i => i.SortOrder) + 1 : 0;
+        item.SetSortOrder(maxSortOrder);
         item.MoveToShelf(targetShelfId);
         await _itemRepository.UpdateAsync(item, cancellationToken);
 

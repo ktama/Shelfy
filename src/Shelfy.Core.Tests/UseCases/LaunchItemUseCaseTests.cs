@@ -26,7 +26,7 @@ public class LaunchItemUseCaseTests
     public async Task Execute_WithValidItem_LaunchesSuccessfully()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File", DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act
@@ -57,7 +57,7 @@ public class LaunchItemUseCaseTests
     public async Task Execute_WhenLaunchFails_ReturnsLaunchFailed()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File", DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
         _launcher.ShouldSucceed = false;
 
@@ -72,7 +72,7 @@ public class LaunchItemUseCaseTests
     public async Task Execute_UpdatesLastAccessedAt()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File", DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
         _clock.UtcNow = new DateTime(2026, 6, 15, 10, 30, 0, DateTimeKind.Utc);
 
@@ -88,7 +88,7 @@ public class LaunchItemUseCaseTests
     public async Task Execute_WhenHotkeyNotHeld_ReturnsHideWindow()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File", DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
         _hotkeyHoldState.IsHotkeyHeld = false;
 
@@ -105,7 +105,7 @@ public class LaunchItemUseCaseTests
     public async Task Execute_WhenHotkeyHeld_ReturnsKeepWindow()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Test File", DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
         _hotkeyHoldState.IsHotkeyHeld = true;
 

@@ -11,6 +11,7 @@ public class Item
     public string Target { get; }
     public string DisplayName { get; private set; }
     public string? Memo { get; private set; }
+    public int SortOrder { get; private set; }
     public DateTime CreatedAt { get; }
     public DateTime? LastAccessedAt { get; private set; }
 
@@ -20,8 +21,9 @@ public class Item
         ItemType type,
         string target,
         string displayName,
+        DateTime createdAt,
         string? memo = null,
-        DateTime? createdAt = null,
+        int sortOrder = 0,
         DateTime? lastAccessedAt = null)
     {
         if (string.IsNullOrWhiteSpace(target))
@@ -35,8 +37,9 @@ public class Item
         Type = type;
         Target = target;
         DisplayName = displayName;
+        CreatedAt = createdAt;
         Memo = memo;
-        CreatedAt = createdAt ?? DateTime.UtcNow;
+        SortOrder = sortOrder;
         LastAccessedAt = lastAccessedAt;
     }
 
@@ -56,6 +59,11 @@ public class Item
     public void MarkAccessed(DateTime accessedAt)
     {
         LastAccessedAt = accessedAt;
+    }
+
+    public void SetSortOrder(int order)
+    {
+        SortOrder = order;
     }
 
     public void MoveToShelf(ShelfId newShelfId)

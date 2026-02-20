@@ -19,32 +19,25 @@ public class TogglePinShelfUseCase
         ShelfId shelfId,
         CancellationToken cancellationToken = default)
     {
-        try
+        var shelf = await _shelfRepository.GetByIdAsync(shelfId, cancellationToken);
+
+        if (shelf is null)
         {
-            var shelf = await _shelfRepository.GetByIdAsync(shelfId, cancellationToken);
-
-            if (shelf is null)
-            {
-                return new TogglePinShelfResult.NotFound(shelfId);
-            }
-
-            // ピン状態を切り替え
-            if (shelf.IsPinned)
-            {
-                shelf.Unpin();
-            }
-            else
-            {
-                shelf.Pin();
-            }
-
-            await _shelfRepository.UpdateAsync(shelf, cancellationToken);
-
-            return new TogglePinShelfResult.Success(shelf);
+            return new TogglePinShelfResult.NotFound(shelfId);
         }
-        catch (Exception ex)
+
+        // ピン状態を切り替え
+        if (shelf.IsPinned)
         {
-            return new TogglePinShelfResult.Error(ex.Message);
+            shelf.Unpin();
         }
+        else
+        {
+            shelf.Pin();
+        }
+
+        await _shelfRepository.UpdateAsync(shelf, cancellationToken);
+
+        return new TogglePinShelfResult.Success(shelf);
     }
 }

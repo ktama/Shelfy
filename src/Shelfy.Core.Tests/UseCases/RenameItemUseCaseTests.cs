@@ -20,7 +20,7 @@ public class RenameItemUseCaseTests
     public async Task Execute_WithValidName_RenamesItem()
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Original Name");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Original Name", DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act
@@ -39,7 +39,7 @@ public class RenameItemUseCaseTests
     public async Task Execute_WithInvalidName_ReturnsValidationError(string? invalidName)
     {
         // Arrange
-        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Original Name");
+        var item = new Item(ItemId.New(), ShelfId.New(), ItemType.File, @"C:\test.txt", "Original Name", DateTime.UtcNow);
         await _itemRepository.AddAsync(item);
 
         // Act

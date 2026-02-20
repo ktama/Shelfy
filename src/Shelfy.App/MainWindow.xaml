@@ -14,220 +14,271 @@
         Drop="Window_Drop"
         DragOver="Window_DragOver">
 
-    <Window.Resources>
-        <!-- Pin Converter -->
-        <local:BoolToStringConverter x:Key="PinConverter"
-                TrueValue="📌"
-                FalseValue="📁"/>
+        <Window.Resources>
+                <!-- Pin Converter -->
+                <local:BoolToStringConverter x:Key="PinConverter"
+                                             TrueValue="📌"
+                                             FalseValue="📁"/>
 
-        <!-- Exists to Color Converter -->
-        <local:BoolToColorConverter x:Key="ExistsToColorConverter"
-                                    TrueColor="Black"
-                FalseColor="Red"/>
+                <!-- Exists to Color Converter -->
+                <local:BoolToColorConverter x:Key="ExistsToColorConverter"
+                                            TrueColor="Black"
+                                            FalseColor="Red"/>
 
-        <!-- String to Visibility Converter -->
-        <local:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+                <!-- String to Visibility Converter -->
+                <local:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
 
-        <!-- Inverse Bool to Visibility Converter -->
-        <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+                <!-- Inverse Bool to Visibility Converter -->
+                <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
 
-        <!-- Shelf TreeView Item Template -->
-        <HierarchicalDataTemplate x:Key="ShelfTemplate"
-                                  DataType="{x:Type vm:ShelfViewModel}"
-                                  ItemsSource="{Binding Children}">
-            <StackPanel Orientation="Horizontal"
-                    Margin="2">
-                <TextBlock Text="{Binding IsPinned, Converter={StaticResource PinConverter}}"
-                           FontSize="12"
-                        Margin="0,0,4,0"/>
-                <TextBlock Text="{Binding Name}"
-                        FontSize="14"/>
-            </StackPanel>
-        </HierarchicalDataTemplate>
+                <!-- Shelf TreeView Item Template -->
+                <HierarchicalDataTemplate x:Key="ShelfTemplate"
+                                          DataType="{x:Type vm:ShelfViewModel}"
+                                          ItemsSource="{Binding Children}">
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="2">
+                                <TextBlock Text="{Binding IsPinned, Converter={StaticResource PinConverter}}"
+                                           FontSize="12"
+                                           Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding Name}"
+                                           FontSize="14"/>
+                        </StackPanel>
+                </HierarchicalDataTemplate>
 
-        <!-- Item Template -->
-        <DataTemplate x:Key="ItemTemplate"
-                DataType="{x:Type vm:ItemViewModel}">
-            <Grid Margin="4"
-                    ToolTip="{Binding Target}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0"
-                        Text="{Binding TypeIcon}"
-                        FontSize="16"
-                        Margin="0,0,8,0"
-                        VerticalAlignment="Center"/>
-                <StackPanel Grid.Column="1"
-                        VerticalAlignment="Center">
-                    <TextBlock Text="{Binding DisplayName}"
-                            FontSize="14"
-                            FontWeight="SemiBold"
-                               Foreground="{Binding Exists, Converter={StaticResource ExistsToColorConverter}}"/>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding ShelfName}"
-                                   FontSize="10"
-                                   Foreground="DarkBlue"
-                                   Margin="0,0,8,0"
-                                   Visibility="{Binding ShelfName, Converter={StaticResource StringToVisibilityConverter}}"/>
-                        <TextBlock Text="{Binding Target}"
-                                FontSize="10"
-                                Foreground="Gray"
-                                   TextTrimming="CharacterEllipsis"
-                                MaxWidth="350"/>
-                    </StackPanel>
-                </StackPanel>
-                <TextBlock Grid.Column="2"
-                           Text="⚠️"
-                           FontSize="12"
-                           Foreground="Red"
-                           VerticalAlignment="Center"
-                           Margin="4,0"
-                           Visibility="{Binding Exists, Converter={StaticResource InverseBoolToVisibilityConverter}}"
-                           ToolTip="File or folder not found"/>
-                <TextBlock Grid.Column="3"
-                        Text="{Binding LastAccessedAt, StringFormat='yyyy/MM/dd HH:mm'}"
-                           FontSize="10"
-                        Foreground="Gray"
-                        VerticalAlignment="Center"/>
-            </Grid>
-        </DataTemplate>
-    </Window.Resources>
+                <!-- Item Template -->
+                <DataTemplate x:Key="ItemTemplate"
+                              DataType="{x:Type vm:ItemViewModel}">
+                        <Grid Margin="4"
+                              ToolTip="{Binding Target}">
+                                <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding TypeIcon}"
+                                           FontSize="16"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding Exists, Converter={StaticResource ExistsToColorConverter}}"/>
+                                        <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding ShelfName}"
+                                                           FontSize="10"
+                                                           Foreground="DarkBlue"
+                                                           Margin="0,0,8,0"
+                                                           Visibility="{Binding ShelfName, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                                <TextBlock Text="{Binding Target}"
+                                                           FontSize="10"
+                                                           Foreground="Gray"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           MaxWidth="350"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Memo}"
+                                                   FontSize="10"
+                                                   Foreground="DarkGreen"
+                                                   FontStyle="Italic"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   MaxWidth="400"
+                                                   Visibility="{Binding Memo, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="2"
+                                           Text="⚠️"
+                                           FontSize="12"
+                                           Foreground="Red"
+                                           VerticalAlignment="Center"
+                                           Margin="4,0"
+                                           Visibility="{Binding Exists, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                           ToolTip="File or folder not found"/>
+                                <TextBlock Grid.Column="3"
+                                           Text="{Binding LastAccessedAt, StringFormat='yyyy/MM/dd HH:mm'}"
+                                           FontSize="10"
+                                           Foreground="Gray"
+                                           VerticalAlignment="Center"/>
+                        </Grid>
+                </DataTemplate>
+        </Window.Resources>
 
-    <Window.InputBindings>
-        <KeyBinding Key="Escape"
-                Command="{Binding HideCommand}"/>
-        <KeyBinding Key="N"
-                Modifiers="Ctrl"
-                Command="{Binding CreateShelfCommand}"/>
-        <KeyBinding Key="Delete"
-                Command="{Binding RemoveItemCommand}"/>
-        <KeyBinding Key="F2"
-                Command="{Binding RenameItemCommand}"/>
-        <KeyBinding Key="Return"
-                Command="{Binding LaunchItemCommand}"/>
-    </Window.InputBindings>
+        <Window.InputBindings>
+                <KeyBinding Key="Escape"
+                            Command="{Binding HideCommand}"/>
+                <KeyBinding Key="N"
+                            Modifiers="Ctrl"
+                            Command="{Binding CreateShelfCommand}"/>
+                <KeyBinding Key="Delete"
+                            Command="{Binding RemoveItemCommand}"/>
+                <KeyBinding Key="F2"
+                            Command="{Binding RenameItemCommand}"/>
+                <KeyBinding Key="Return"
+                            Command="{Binding LaunchItemCommand}"/>
+        </Window.InputBindings>
 
-    <Grid Margin="8">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <!-- Toolbar -->
-        <ToolBar Grid.Row="0"
-                Margin="0,0,0,8">
-            <Button Content="📁 New Shelf"
-                    Command="{Binding CreateShelfCommand}"
-                    ToolTip="Ctrl+N"/>
-            <Button Content="📂 New Child"
-                    Command="{Binding CreateChildShelfCommand}"/>
-            <Separator/>
-            <Button Content="� Recent"
-                    Command="{Binding ShowRecentCommand}"
-                    ToolTip="Show recently used items"/>
-            <Button Content="⚠️ Missing"
-                    Command="{Binding ShowMissingCommand}"
-                    ToolTip="Show items with missing files"/>
-            <Separator/>
-            <Button Content="🔄 Refresh"
-                    Command="{Binding RefreshCommand}"/>
-            <Separator/>
-            <TextBox Width="200"
-                    Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                     VerticalContentAlignment="Center"
-                     x:Name="SearchBox"/>
-            <TextBlock Text="{Binding ViewModeTitle}"
-                       VerticalAlignment="Center"
-                       Margin="8,0,0,0"
-                       FontWeight="SemiBold"/>
-        </ToolBar>
-
-        <!-- Main Content -->
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="250"
-                        MinWidth="150"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Shelf Tree -->
-            <Grid Grid.Column="0">
+        <Grid Margin="8">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <TreeView ItemsSource="{Binding RootShelves}"
-                          ItemTemplate="{StaticResource ShelfTemplate}"
-                          SelectedItemChanged="TreeView_SelectedItemChanged">
-                    <TreeView.ItemContainerStyle>
-                        <Style TargetType="TreeViewItem">
-                            <Setter Property="IsExpanded"
-                                    Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                            <Setter Property="IsSelected"
-                                    Value="{Binding IsSelected, Mode=TwoWay}"/>
-                        </Style>
-                    </TreeView.ItemContainerStyle>
-                    <TreeView.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="New Shelf"
-                                    Command="{Binding CreateShelfCommand}"/>
-                            <MenuItem Header="New Child Shelf"
-                                    Command="{Binding CreateChildShelfCommand}"/>
-                            <Separator/>
-                            <MenuItem Header="📌 Toggle Pin"
-                                    Command="{Binding TogglePinShelfCommand}"/>
-                            <Separator/>
-                            <MenuItem Header="Rename"
-                                    Command="{Binding RenameShelfCommand}"/>
-                            <MenuItem Header="Delete"
-                                    Command="{Binding DeleteShelfCommand}"/>
-                        </ContextMenu>
-                    </TreeView.ContextMenu>
-                </TreeView>
-            </Grid>
 
-            <GridSplitter Grid.Column="1"
-                    Width="4"
-                    HorizontalAlignment="Center"
-                          VerticalAlignment="Stretch"
-                    Background="LightGray"/>
-
-            <!-- Item List -->
-            <ListView Grid.Column="2"
-                      ItemsSource="{Binding CurrentItems}"
-                      ItemTemplate="{StaticResource ItemTemplate}"
-                      SelectedItem="{Binding SelectedItem}"
-                      MouseDoubleClick="ListView_MouseDoubleClick">
-                <ListView.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="Launch"
-                                Command="{Binding LaunchItemCommand}"/>
-                        <MenuItem Header="Open Parent Folder"
-                                Command="{Binding OpenParentFolderCommand}"/>
+                <!-- Toolbar -->
+                <ToolBar Grid.Row="0"
+                         Margin="0,0,0,8">
+                        <Button Content="📁 New Shelf"
+                                Command="{Binding CreateShelfCommand}"
+                                ToolTip="Ctrl+N"/>
+                        <Button Content="📂 New Child"
+                                Command="{Binding CreateChildShelfCommand}"/>
                         <Separator/>
-                        <MenuItem Header="Rename"
-                                Command="{Binding RenameItemCommand}"/>
-                        <MenuItem Header="Remove"
-                                Command="{Binding RemoveItemCommand}"/>
-                    </ContextMenu>
-                </ListView.ContextMenu>
-            </ListView>
-        </Grid>
+                        <Button Content="🌐 Add URL"
+                                Command="{Binding AddUrlCommand}"
+                                ToolTip="Manually add a URL to the selected shelf"/>
+                        <Separator/>
+                        <Button Content="🕐 Recent"
+                                Command="{Binding ShowRecentCommand}"
+                                ToolTip="Show recently used items"/>
+                        <Button Content="⚠️ Missing"
+                                Command="{Binding ShowMissingCommand}"
+                                ToolTip="Show items with missing files"/>
+                        <Separator/>
+                        <Button Content="🔄 Refresh"
+                                Command="{Binding RefreshCommand}"/>
+                        <Separator/>
+                        <Button Content="📤 Export"
+                                Command="{Binding ExportDataCommand}"
+                                ToolTip="Export all data to JSON file"/>
+                        <Button Content="📥 Import"
+                                Command="{Binding ImportDataCommand}"
+                                ToolTip="Import data from JSON file"/>
+                        <Separator/>
+                        <Button Content="⚙ Settings"
+                                Command="{Binding OpenSettingsCommand}"
+                                ToolTip="Open settings"/>
+                        <Separator/>
+                        <TextBox Width="200"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 VerticalContentAlignment="Center"
+                                 x:Name="SearchBox"/>
+                        <TextBlock Text="{Binding ViewModeTitle}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0"
+                                   FontWeight="SemiBold"/>
+                </ToolBar>
 
-        <!-- Status Bar -->
-        <StatusBar Grid.Row="2"
-                Margin="0,8,0,0">
-            <StatusBarItem>
-                <TextBlock Text="{Binding StatusMessage}"/>
-            </StatusBarItem>
-            <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="{Binding CurrentItems.Count, StringFormat='{}{0} items'}"/>
-            </StatusBarItem>
-        </StatusBar>
-    </Grid>
+                <!-- Main Content -->
+                <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250"
+                                                  MinWidth="150"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Shelf Tree -->
+                        <Grid Grid.Column="0">
+                                <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TreeView ItemsSource="{Binding RootShelves}"
+                                          ItemTemplate="{StaticResource ShelfTemplate}"
+                                          SelectedItemChanged="TreeView_SelectedItemChanged"
+                                          AllowDrop="True"
+                                          PreviewMouseLeftButtonDown="ShelfTree_PreviewMouseLeftButtonDown"
+                                          PreviewMouseMove="ShelfTree_PreviewMouseMove"
+                                          DragOver="ShelfTree_DragOver"
+                                          Drop="ShelfTree_Drop"
+                                          x:Name="ShelfTree">
+                                        <TreeView.ItemContainerStyle>
+                                                <Style TargetType="TreeViewItem">
+                                                        <Setter Property="IsExpanded"
+                                                                Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                                        <Setter Property="IsSelected"
+                                                                Value="{Binding IsSelected, Mode=TwoWay}"/>
+                                                </Style>
+                                        </TreeView.ItemContainerStyle>
+                                        <TreeView.ContextMenu>
+                                                <ContextMenu>
+                                                        <MenuItem Header="New Shelf"
+                                                                  Command="{Binding CreateShelfCommand}"/>
+                                                        <MenuItem Header="New Child Shelf"
+                                                                  Command="{Binding CreateChildShelfCommand}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="📌 Toggle Pin"
+                                                                  Command="{Binding TogglePinShelfCommand}"/>
+                                                        <MenuItem Header="📂 Move to..."
+                                                                  Command="{Binding MoveShelfCommand}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="⬆ Move Up"
+                                                                  Command="{Binding MoveShelfUpCommand}"/>
+                                                        <MenuItem Header="⬇ Move Down"
+                                                                  Command="{Binding MoveShelfDownCommand}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="Rename"
+                                                                  Command="{Binding RenameShelfCommand}"/>
+                                                        <MenuItem Header="Delete"
+                                                                  Command="{Binding DeleteShelfCommand}"/>
+                                                </ContextMenu>
+                                        </TreeView.ContextMenu>
+                                </TreeView>
+                        </Grid>
+
+                        <GridSplitter Grid.Column="1"
+                                      Width="4"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Stretch"
+                                      Background="LightGray"/>
+
+                        <!-- Item List -->
+                        <ListView Grid.Column="2"
+                                  ItemsSource="{Binding CurrentItems}"
+                                  ItemTemplate="{StaticResource ItemTemplate}"
+                                  SelectedItem="{Binding SelectedItem}"
+                                  MouseDoubleClick="ListView_MouseDoubleClick"
+                                  AllowDrop="True"
+                                  PreviewMouseLeftButtonDown="ItemList_PreviewMouseLeftButtonDown"
+                                  PreviewMouseMove="ItemList_PreviewMouseMove"
+                                  DragOver="ItemList_DragOver"
+                                  Drop="ItemList_Drop"
+                                  x:Name="ItemList">
+                                <ListView.ContextMenu>
+                                        <ContextMenu>
+                                                <MenuItem Header="Launch"
+                                                          Command="{Binding LaunchItemCommand}"/>
+                                                <MenuItem Header="Open Parent Folder"
+                                                          Command="{Binding OpenParentFolderCommand}"/>
+                                                <Separator/>
+                                                <MenuItem Header="📝 Edit Memo"
+                                                          Command="{Binding EditMemoCommand}"/>
+                                                <MenuItem Header="📂 Move to Shelf..."
+                                                          Command="{Binding MoveItemToShelfCommand}"/>
+                                                <Separator/>
+                                                <MenuItem Header="⬆ Move Up"
+                                                          Command="{Binding MoveItemUpCommand}"/>
+                                                <MenuItem Header="⬇ Move Down"
+                                                          Command="{Binding MoveItemDownCommand}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Rename"
+                                                          Command="{Binding RenameItemCommand}"/>
+                                                <MenuItem Header="Remove"
+                                                          Command="{Binding RemoveItemCommand}"/>
+                                        </ContextMenu>
+                                </ListView.ContextMenu>
+                        </ListView>
+                </Grid>
+
+                <!-- Status Bar -->
+                <StatusBar Grid.Row="2"
+                           Margin="0,8,0,0">
+                        <StatusBarItem>
+                                <TextBlock Text="{Binding StatusMessage}"/>
+                        </StatusBarItem>
+                        <StatusBarItem HorizontalAlignment="Right">
+                                <TextBlock Text="{Binding CurrentItems.Count, StringFormat='{}{0} items'}"/>
+                        </StatusBarItem>
+                </StatusBar>
+        </Grid>
 </Window>

@@ -44,15 +44,18 @@ public record SearchQuery
         {
             if (token.StartsWith("box:", StringComparison.OrdinalIgnoreCase))
             {
-                shelfFilter = token[4..].Trim();
+                var value = token[4..].Trim();
+                if (value.Length > 0) shelfFilter = value;
             }
             else if (token.StartsWith("type:", StringComparison.OrdinalIgnoreCase))
             {
-                typeFilter = token[5..].Trim();
+                var value = token[5..].Trim();
+                if (value.Length > 0) typeFilter = value;
             }
             else if (token.StartsWith("in:", StringComparison.OrdinalIgnoreCase))
             {
-                inShelfFilter = token[3..].Trim();
+                var value = token[3..].Trim();
+                if (value.Length > 0) inShelfFilter = value;
             }
             else
             {

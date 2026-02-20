@@ -40,10 +40,11 @@ Shelfy.Core
 │  ├─ Shelves
 │  ├─ Items
 │  ├─ Launch
-│  └─ Search
+│  ├─ Search
+│  └─ DataTransfer
 └─ Ports
-├─ Persistence
-└─ System
+   ├─ Persistence
+   └─ System
 
 ```
 
@@ -85,6 +86,7 @@ Shelfy.Core
 - RenameItem
 - UpdateItemMemo（メモ更新）
 - MoveItemToShelf（別Shelfへ移動）
+- ReorderItems（並び順変更）
 
 #### Launch
 - LaunchItem
@@ -92,6 +94,10 @@ Shelfy.Core
 
 #### Search
 - SearchItems
+
+#### DataTransfer
+- ExportData（全データを JSON にエクスポート）
+- ImportData（JSON からデータをインポート）
 
 #### Utilities
 - GetRecentItems
@@ -101,6 +107,7 @@ Shelfy.Core
 - 1 ユースケース = 1 クラス
 - Ports のみを通じて外界に依存
 - UI 状態を直接操作しない
+- 関連 UseCase をまとめたファサード（ShelfUseCases / ItemUseCases / DataTransferUseCases）を提供し、ViewModel の依存数を削減
 
 ### LaunchItem の設計
 - 入力：ItemId
@@ -121,26 +128,39 @@ Shelfy.Core
 - IShelfRepository
 - IItemRepository
 - ISettingsRepository（ホットキー設定、表示設定等）
+- IDataSerializer（Export/Import データのシリアライズ）
 
 ### System
 - IItemLauncher
 - IHotkeyHoldState
 - IClock
 - IExistenceChecker
+- IAppLogger
 
 ---
 
 ## 7. Adapters（Infrastructure）
 
 ### SQLite
+- SqliteConnectionFactory（接続生成・スキーマ初期化・マイグレーション）
 - SqliteShelfRepository
 - SqliteItemRepository
+- SqliteSettingsRepository
+
+### InMemory（開発・テスト用）
+- InMemoryShelfRepository
+- InMemoryItemRepository
+- InMemorySettingsRepository
+
+### Serialization
+- DataSerializer（JSON シリアライズ / デシリアライズ）
 
 ### Win32 / OS
 - Win32ItemLauncher
 - Win32HotkeyHoldState
 - FileExistenceChecker
 - SystemClock
+- FileAppLogger
 
 ※ Infrastructure は Core を参照するが逆は禁止
 
