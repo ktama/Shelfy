@@ -24,18 +24,18 @@
                 <local:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
                 <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
                 <Style x:Key="NavButtonStyle"
-                                TargetType="Button"
-                                BasedOn="{StaticResource {x:Type Button}}">
+                       TargetType="Button"
+                       BasedOn="{StaticResource {x:Type Button}}">
                         <Setter Property="HorizontalAlignment"
-                                        Value="Stretch"/>
+                                Value="Stretch"/>
                         <Setter Property="HorizontalContentAlignment"
-                                        Value="Left"/>
+                                Value="Left"/>
                         <Setter Property="Padding"
-                                        Value="8,5"/>
+                                Value="8,5"/>
                         <Setter Property="Background"
-                                        Value="Transparent"/>
+                                Value="Transparent"/>
                         <Setter Property="BorderThickness"
-                                        Value="0"/>
+                                Value="0"/>
                 </Style>
         </ui:FluentWindow.Resources>
 
