@@ -8,7 +8,12 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>Assets\shelfy.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\shelfy.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Shelfy.Core\Shelfy.Core.csproj" />

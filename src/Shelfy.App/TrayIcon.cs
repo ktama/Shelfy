@@ -17,7 +17,7 @@ public class TrayIcon : IDisposable
     {
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application, // デフォルトアイコン
+            Icon = LoadAppIcon(),
             Text = "Shelfy - Press Ctrl+Shift+Space to show",
             Visible = true
         };
@@ -42,6 +42,13 @@ public class TrayIcon : IDisposable
     {
         Dispose();
         _mainWindow.ExitApplication();
+    }
+
+    private static Icon LoadAppIcon()
+    {
+        var uri = new Uri("pack://application:,,,/Assets/shelfy.ico", UriKind.Absolute);
+        var stream = System.Windows.Application.GetResourceStream(uri)?.Stream;
+        return stream is not null ? new Icon(stream) : SystemIcons.Application;
     }
 
     public void Dispose()

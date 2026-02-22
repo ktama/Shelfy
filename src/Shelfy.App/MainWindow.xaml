@@ -8,6 +8,7 @@
                  xmlns:vm="clr-namespace:Shelfy.App.ViewModels"
                  mc:Ignorable="d"
                  Title="Shelfy"
+                 Icon="Assets/shelfy.ico"
                  Height="500"
                  Width="800"
                  WindowStartupLocation="CenterScreen"
