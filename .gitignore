@@ -128,3 +128,10 @@ appsettings.*.json
 *.bak
 *.swp
 *.cache
+
+# Rust (src-tauri)
+/src-tauri/target/
+
+# Tauri のフロントエンド成果物
+/dist/
+node_modules/

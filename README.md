@@ -115,11 +115,13 @@ dotnet run --project src/Shelfy.App
 
 詳細なドキュメントは [doc/](doc/) フォルダを参照してください。
 
-| ドキュメント                                         | 説明                 |
-| ---------------------------------------------------- | -------------------- |
-| [SPECIFICATION.md](doc/SPECIFICATION.md)             | 機能仕様書           |
-| [DESIGN.md](doc/DESIGN.md)                           | アーキテクチャ設計書 |
-| [IMPLEMENTATION_PLAN.md](doc/IMPLEMENTATION_PLAN.md) | 実装計画             |
+| ドキュメント                                         | 説明                                             |
+| ---------------------------------------------------- | ------------------------------------------------ |
+| [SPECIFICATION.md](doc/SPECIFICATION.md)             | 機能仕様書                                       |
+| [DESIGN.md](doc/DESIGN.md)                           | アーキテクチャ設計書                             |
+| [UI_DESIGN.md](doc/UI_DESIGN.md)                     | UI 設計書                                        |
+| [IMPLEMENTATION_PLAN.md](doc/IMPLEMENTATION_PLAN.md) | 実装計画                                         |
+| [rebuild/](doc/rebuild/)                             | 技術スタック刷新と再作成のためのドキュメント一式 |
 
 ## 📝 ライセンス
 
