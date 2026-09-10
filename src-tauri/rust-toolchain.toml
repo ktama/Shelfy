@@ -1,0 +1,6 @@
+# ビルド結果が版数の更新で変わらないよう固定する
+# （doc/rebuild/05-REBUILD_PLAN.md 第 6 節）
+[toolchain]
+channel = "1.96.0"
+components = ["rustfmt", "clippy"]
+targets = ["x86_64-pc-windows-msvc"]

@@ -1,8 +1,15 @@
+# リリース用のワークフロー。
+#
+# 再作成の途中のため、まだ自動では走らせない。
+# 配布できる実行ファイルが揃うのはフェーズ 4 以降であり、
+# 中身はフェーズ 8 で組み直す（doc/rebuild/05-REBUILD_PLAN.md 第 6 節）。
+#
+# それまでのあいだ、タグを push しても何も起きないよう、
+# 起動を手動（workflow_dispatch）だけに絞ってある。
 name: Release
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,44 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
-          dotnet-quality: "preview"
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-
-      - name: Restore dependencies
-        run: dotnet restore Shelfy.slnx
-
-      - name: Build
-        run: dotnet build Shelfy.slnx --configuration Release --no-restore
-
-      - name: Test
-        run: dotnet test Shelfy.slnx --configuration Release --no-build --verbosity normal
-
-      - name: Publish
-        run: >
-          dotnet publish src/Shelfy.App/Shelfy.App.csproj
-          --configuration Release
-          --runtime win-x64
-          --self-contained true
-          --output ./publish
-          -p:PublishSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true
-
-      - name: Create zip archive
-        run: Compress-Archive -Path ./publish/* -DestinationPath Shelfy-${{ github.ref_name }}-win-x64.zip
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: Shelfy-${{ github.ref_name }}-win-x64.zip
+      - name: Not ready yet
+        run: |
+          Write-Host "リリースの組み立てはフェーズ 8 で用意します。"
+          Write-Host "doc/rebuild/05-REBUILD_PLAN.md 第 6 節を参照してください。"

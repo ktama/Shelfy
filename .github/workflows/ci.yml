@@ -9,6 +9,13 @@ on:
 permissions:
   contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    working-directory: src-tauri
+
 jobs:
   test:
     runs-on: windows-latest
@@ -16,25 +23,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
-          dotnet-quality: "preview"
+      # 版数は src-tauri/rust-toolchain.toml で固定している
+      - name: Show toolchain
+        run: |
+          rustup show
+          cargo --version
 
-      - name: Cache NuGet packages
+      - name: Cache cargo
         uses: actions/cache@v4
         with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-nuget-
+            ${{ runner.os }}-cargo-
 
-      - name: Restore dependencies
-        run: dotnet restore Shelfy.slnx
+      - name: Format
+        run: cargo fmt --check
 
-      - name: Build
-        run: dotnet build Shelfy.slnx --configuration Release --no-restore
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
 
       - name: Test
-        run: dotnet test Shelfy.slnx --configuration Release --no-build --verbosity normal
+        run: cargo test --all-targets

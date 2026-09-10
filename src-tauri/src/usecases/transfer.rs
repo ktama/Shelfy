@@ -60,6 +60,74 @@ pub fn parse_time(s: &str) -> Option<OffsetDateTime> {
     OffsetDateTime::parse(s, &Rfc3339).ok()
 }
 
+// ------------------------------------------------ ドメインと書式の変換
+// 保存用のスナップショットも同じ要素の形を使うため、変換はここに集める。
+
+pub fn shelf_to_data(shelf: &Shelf) -> ShelfData {
+    ShelfData {
+        id: shelf.id().to_string(),
+        name: shelf.name().to_string(),
+        parent_id: shelf.parent_id().map(|p| p.to_string()),
+        sort_order: shelf.sort_order(),
+        is_pinned: shelf.is_pinned(),
+    }
+}
+
+pub fn item_to_data(item: &Item) -> ItemData {
+    ItemData {
+        id: item.id().to_string(),
+        shelf_id: item.shelf_id().to_string(),
+        item_type: item.item_type().to_code(),
+        target: item.target().to_string(),
+        display_name: item.display_name().to_string(),
+        memo: item.memo().map(|m| m.to_string()),
+        sort_order: item.sort_order(),
+        created_at: format_time(item.created_at()),
+        last_accessed_at: item.last_accessed_at().map(format_time),
+    }
+}
+
+/// 読めないレコードは `None` を返す。呼び出し側はそのレコードだけを飛ばす。
+pub fn shelf_from_data(data: &ShelfData) -> Option<Shelf> {
+    let id = ShelfId::parse(&data.id)?;
+    let parent_id = match &data.parent_id {
+        None => None,
+        Some(p) => Some(ShelfId::parse(p)?),
+    };
+    Shelf::new(
+        id,
+        data.name.clone(),
+        parent_id,
+        data.sort_order,
+        data.is_pinned,
+    )
+    .ok()
+}
+
+/// 読めないレコードは `None` を返す。識別子、種別の数値、日時のいずれかが壊れていれば読めない。
+pub fn item_from_data(data: &ItemData) -> Option<Item> {
+    let id = ItemId::parse(&data.id)?;
+    let shelf_id = ShelfId::parse(&data.shelf_id)?;
+    let item_type = ItemType::from_code(data.item_type)?;
+    let created_at = parse_time(&data.created_at)?;
+    let last_accessed_at = match &data.last_accessed_at {
+        None => None,
+        Some(s) => Some(parse_time(s)?),
+    };
+    Item::new(
+        id,
+        shelf_id,
+        item_type,
+        data.target.clone(),
+        data.display_name.clone(),
+        created_at,
+        data.memo.clone(),
+        data.sort_order,
+        last_accessed_at,
+    )
+    .ok()
+}
+
 /// 全 Shelf と全 Item を交換形式にまとめる
 pub fn export_data(
     shelves: &dyn ShelfRepository,
@@ -69,32 +137,8 @@ pub fn export_data(
     ExportData {
         version: EXCHANGE_VERSION.to_string(),
         exported_at: format_time(clock.now_utc()),
-        shelves: shelves
-            .all()
-            .into_iter()
-            .map(|s| ShelfData {
-                id: s.id().to_string(),
-                name: s.name().to_string(),
-                parent_id: s.parent_id().map(|p| p.to_string()),
-                sort_order: s.sort_order(),
-                is_pinned: s.is_pinned(),
-            })
-            .collect(),
-        items: items
-            .all()
-            .into_iter()
-            .map(|i| ItemData {
-                id: i.id().to_string(),
-                shelf_id: i.shelf_id().to_string(),
-                item_type: i.item_type().to_code(),
-                target: i.target().to_string(),
-                display_name: i.display_name().to_string(),
-                memo: i.memo().map(|m| m.to_string()),
-                sort_order: i.sort_order(),
-                created_at: format_time(i.created_at()),
-                last_accessed_at: i.last_accessed_at().map(format_time),
-            })
-            .collect(),
+        shelves: shelves.all().iter().map(shelf_to_data).collect(),
+        items: items.all().iter().map(item_to_data).collect(),
     }
 }
 
@@ -193,84 +237,38 @@ fn order_parents_first(shelves: &[ShelfData]) -> Vec<&ShelfData> {
 }
 
 fn import_shelf(shelves: &dyn ShelfRepository, data: &ShelfData) -> bool {
-    let Some(id) = ShelfId::parse(&data.id) else {
+    let Some(shelf) = shelf_from_data(data) else {
         return false;
     };
-    if shelves.get(id).is_some() {
+    // 既にある識別子は取り込まない
+    if shelves.get(shelf.id()).is_some() {
         return false;
     }
-    let parent_id = match &data.parent_id {
-        None => None,
-        Some(p) => match ShelfId::parse(p) {
-            Some(parsed) => Some(parsed),
-            None => return false,
-        },
-    };
-    let Ok(shelf) = Shelf::new(
-        id,
-        data.name.clone(),
-        parent_id,
-        data.sort_order,
-        data.is_pinned,
-    ) else {
-        return false;
-    };
     shelves.add(shelf);
     true
 }
 
 fn import_item(shelves: &dyn ShelfRepository, items: &dyn ItemRepository, data: &ItemData) -> bool {
-    let Some(id) = ItemId::parse(&data.id) else {
-        return false;
-    };
-    let Some(shelf_id) = ShelfId::parse(&data.shelf_id) else {
+    // 識別子、種別の数値、日時のいずれかが読めないレコードは飛ばす（仕様変更 2 番）
+    let Some(item) = item_from_data(data) else {
         return false;
     };
     // 所属先が無いものは取り込まない
-    if shelves.get(shelf_id).is_none() {
+    if shelves.get(item.shelf_id()).is_none() {
         return false;
     }
-    // 種別の数値が定義域外のものは取り込まない
-    let Some(item_type) = ItemType::from_code(data.item_type) else {
-        return false;
-    };
     // 既にある識別子は取り込まない
-    if items.get(id).is_some() {
+    if items.get(item.id()).is_some() {
         return false;
     }
-    // 日時が読めないレコードは、そのレコードだけを飛ばす（仕様変更 2 番）
-    let Some(created_at) = parse_time(&data.created_at) else {
-        return false;
-    };
-    let last_accessed_at = match &data.last_accessed_at {
-        None => None,
-        Some(s) => match parse_time(s) {
-            Some(t) => Some(t),
-            None => return false,
-        },
-    };
     // 同一 Shelf 内で参照が重複するものは取り込まない（仕様変更 1 番）
     if items
-        .by_shelf(shelf_id)
+        .by_shelf(item.shelf_id())
         .iter()
-        .any(|i| i.is_same_reference(item_type, &data.target))
+        .any(|i| i.is_same_reference(item.item_type(), item.target()))
     {
         return false;
     }
-
-    let Ok(item) = Item::new(
-        id,
-        shelf_id,
-        item_type,
-        data.target.clone(),
-        data.display_name.clone(),
-        created_at,
-        data.memo.clone(),
-        data.sort_order,
-        last_accessed_at,
-    ) else {
-        return false;
-    };
 
     items.add(item);
     true

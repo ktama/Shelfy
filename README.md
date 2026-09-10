@@ -18,56 +18,75 @@
 | Folder | フォルダへの参照  |
 | URL    | Webページへの参照 |
 
+## 🚧 再作成中です
+
+Shelfy は現在、軽量化と高速化のために作り直しの途中にあります。
+
+C# と WPF による実装（v1.0.0）は、配布物が単一 exe で 174 MiB ありました。そのうち約 165 MiB は .NET ランタイムと WPF 本体で、自作コードは 300 KiB 弱です。この重さを解くため、Rust と Tauri v2 で組み直しています。
+
+| 版       | 構成                   | 単一 exe               | 状態                     |
+| -------- | ---------------------- | ---------------------- | ------------------------ |
+| v1.0.0   | C# / WPF / SQLite      | 174 MiB                | タグ `v1.0.0` に保存済み |
+| 再作成版 | Rust / Tauri v2 / JSON | 3.08 MiB（試作の実測） | 作成中                   |
+
+**この時点では、まだ動くアプリはありません。** 画面はフェーズ 4 で作ります。
+選定の経緯、仕様、設計、進め方は [doc/rebuild/](doc/rebuild/) にあります。
+
+以前の版を使いたい場合は、タグ `v1.0.0` から取得してください。
+
+```bash
+git checkout v1.0.0
+```
+
 ## 🏗️ アーキテクチャ
 
 Clean Architecture（Ports & Adapters）を採用し、依存方向は常に「外 → 内」です。
 
-```
-┌──────────────────────────┐
-│ Frameworks / UI (WPF)    │  ← Shelfy.App
-├──────────────────────────┤
-│ Adapters (Infrastructure)│  ← Shelfy.Infrastructure
-├──────────────────────────┤
-│ Ports / Use Cases        │  ← Shelfy.Core
-├──────────────────────────┤
-│ Domain                   │  ← Shelfy.Core
-└──────────────────────────┘
+```text
+┌──────────────────────────────┐
+│ UI（WebView2 / TypeScript）  │  ← src/
+├──────────────────────────────┤
+│ Adapters（永続化、Win32）    │  ← src-tauri/src/adapters/
+├──────────────────────────────┤
+│ Ports（trait）               │  ← src-tauri/src/ports.rs
+├──────────────────────────────┤
+│ UseCases                     │  ← src-tauri/src/usecases/
+├──────────────────────────────┤
+│ Domain                       │  ← src-tauri/src/domain.rs
+└──────────────────────────────┘
 ```
 
-### プロジェクト構成
+### 構成
 
-| プロジェクト            | 説明                                     |
-| ----------------------- | ---------------------------------------- |
-| `Shelfy.Core`           | ドメインモデル、ユースケース、ポート定義 |
-| `Shelfy.Infrastructure` | リポジトリ実装、システム連携             |
-| `Shelfy.App`            | WPF アプリケーション                     |
-| `Shelfy.Core.Tests`     | Core 層のユニットテスト                  |
+| 場所                      | 説明                                          | 状態       |
+| ------------------------- | --------------------------------------------- | ---------- |
+| `src-tauri/src/domain.rs` | ドメインモデル                                | 実装済み   |
+| `src-tauri/src/usecases/` | ユースケース                                  | 実装済み   |
+| `src-tauri/src/ports.rs`  | ポート（trait）                               | 実装済み   |
+| `src-tauri/src/adapters/` | JSON スナップショットによる永続化、Win32 連携 | 永続化のみ |
+| `src/`                    | フロントエンド                                | 未着手     |
 
 ## 🛠️ 開発環境
 
-- **.NET 10** (Windows)
-- **WPF** (Windows Presentation Foundation)
-- **CommunityToolkit.Mvvm** - MVVM フレームワーク
-- **Microsoft.Extensions.DependencyInjection** - DI コンテナ
+- **Rust**（版数は `src-tauri/rust-toolchain.toml` で固定）
+- **Tauri v2** と **WebView2**（Windows 11 には標準搭載）
+- **Node.js**（フロントエンドのビルド、フェーズ 4 から）
 
-## 🚀 ビルド方法
+## 🚀 ビルドとテスト
 
 ```bash
-# リポジトリをクローン
 git clone https://github.com/ktama/Shelfy.git
-cd Shelfy
+cd Shelfy/src-tauri
 
-# ビルド
-dotnet build
-
-# テスト実行
-dotnet test
-
-# 実行
-dotnet run --project src/Shelfy.App
+cargo test          # テスト
+cargo clippy --all-targets
+cargo fmt --check
 ```
 
 ## 📖 使い方
+
+以下は v1.0.0 での操作であり、再作成版でもそのまま引き継ぎます。
+規則の詳細は [doc/rebuild/02-SPECIFICATION.md](doc/rebuild/02-SPECIFICATION.md) にあります。
 
 ### 基本操作
 
@@ -115,13 +134,13 @@ dotnet run --project src/Shelfy.App
 
 詳細なドキュメントは [doc/](doc/) フォルダを参照してください。
 
-| ドキュメント                                         | 説明                                             |
-| ---------------------------------------------------- | ------------------------------------------------ |
-| [SPECIFICATION.md](doc/SPECIFICATION.md)             | 機能仕様書                                       |
-| [DESIGN.md](doc/DESIGN.md)                           | アーキテクチャ設計書                             |
-| [UI_DESIGN.md](doc/UI_DESIGN.md)                     | UI 設計書                                        |
-| [IMPLEMENTATION_PLAN.md](doc/IMPLEMENTATION_PLAN.md) | 実装計画                                         |
-| [rebuild/](doc/rebuild/)                             | 技術スタック刷新と再作成のためのドキュメント一式 |
+| ドキュメント                                         | 説明                                                |
+| ---------------------------------------------------- | --------------------------------------------------- |
+| [rebuild/](doc/rebuild/)                             | **再作成の一式**（選定、仕様、設計、移行、進め方）  |
+| [SPECIFICATION.md](doc/SPECIFICATION.md)             | 機能仕様書（概念の輪郭）                            |
+| [DESIGN.md](doc/DESIGN.md)                           | v1.0.0 のアーキテクチャ設計書（記録）               |
+| [UI_DESIGN.md](doc/UI_DESIGN.md)                     | v1.0.0 の UI 設計書（記録、見た目の意図は引き継ぐ） |
+| [IMPLEMENTATION_PLAN.md](doc/IMPLEMENTATION_PLAN.md) | v1.0.0 の実装計画（記録）                           |
 
 ## 📝 ライセンス
 

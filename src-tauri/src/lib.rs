@@ -6,6 +6,7 @@
 //! `domain` と `usecases` は UI も OS も永続化技術も知らない。
 //! 外界とのやり取りは `ports` の trait を通す。
 
+pub mod adapters;
 pub mod domain;
 pub mod ports;
 pub mod usecases;
