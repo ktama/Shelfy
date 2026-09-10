@@ -18,21 +18,31 @@
 | Folder | フォルダへの参照  |
 | URL    | Webページへの参照 |
 
-## 🚧 再作成中です
+## 🪶 軽くなりました
 
-Shelfy は現在、軽量化と高速化のために作り直しの途中にあります。
+Shelfy は、軽量化と高速化のために Rust と Tauri v2 で作り直しました。
 
-C# と WPF による実装（v1.0.0）は、配布物が単一 exe で 174 MiB ありました。そのうち約 165 MiB は .NET ランタイムと WPF 本体で、自作コードは 300 KiB 弱です。この重さを解くため、Rust と Tauri v2 で組み直しています。
+| 版     | 構成                   | 単一 exe     | 起動   | ホットキー→表示 |
+| ------ | ---------------------- | ------------ | ------ | --------------- |
+| v1.0.0 | C# / WPF / SQLite      | 174 MiB      | 未計測 | 未計測          |
+| 現在   | Rust / Tauri v2 / JSON | **3.46 MiB** | 310 ms | **1.4 ms**      |
 
-| 版       | 構成                   | 単一 exe               | 状態                     |
-| -------- | ---------------------- | ---------------------- | ------------------------ |
-| v1.0.0   | C# / WPF / SQLite      | 174 MiB                | タグ `v1.0.0` に保存済み |
-| 再作成版 | Rust / Tauri v2 / JSON | 3.08 MiB（試作の実測） | 作成中                   |
+配布物は **50 分の 1** になりました。v1.0.0 の 174 MiB のうち約 165 MiB は .NET ランタイムと WPF 本体で、自作コードは 300 KiB 弱でした。描画を Windows に元からある WebView2 へ任せることで、実行ファイルには自分のコードだけを載せています。
 
-**この時点では、まだ動くアプリはありません。** 画面はフェーズ 4 で作ります。
-選定の経緯、仕様、設計、進め方は [doc/rebuild/](doc/rebuild/) にあります。
+選定の経緯、仕様、設計、計測の記録は [doc/rebuild/](doc/rebuild/) にあります。
 
-以前の版を使いたい場合は、タグ `v1.0.0` から取得してください。
+### 必要なもの
+
+**Microsoft Edge WebView2 ランタイム**。Windows 11 には標準で入っています。入っていない環境では、起動時にその旨を案内します。
+
+### v1.0.0 からデータを移す
+
+1. v1.0.0 の「📤 Export」で JSON を書き出す
+2. 本版の「取込」で読み込む
+
+v1.0.0 を起動できない場合は、`tools/shelfy-migrate` で `shelfy.db` から直接 JSON を作れます。手順は [04-DATA_MIGRATION.md](doc/rebuild/04-DATA_MIGRATION.md) にあります。
+
+以前の版はタグ `v1.0.0` から取得できます。
 
 ```bash
 git checkout v1.0.0
@@ -58,13 +68,14 @@ Clean Architecture（Ports & Adapters）を採用し、依存方向は常に「�
 
 ### 構成
 
-| 場所                      | 説明                                          | 状態       |
-| ------------------------- | --------------------------------------------- | ---------- |
-| `src-tauri/src/domain.rs` | ドメインモデル                                | 実装済み   |
-| `src-tauri/src/usecases/` | ユースケース                                  | 実装済み   |
-| `src-tauri/src/ports.rs`  | ポート（trait）                               | 実装済み   |
-| `src-tauri/src/adapters/` | JSON スナップショットによる永続化、Win32 連携 | 永続化のみ |
-| `src/`                    | フロントエンド                                | 未着手     |
+| 場所                        | 説明                                          | 状態     |
+| --------------------------- | --------------------------------------------- | -------- |
+| `src-tauri/src/domain.rs`   | ドメインモデル                                | 実装済み |
+| `src-tauri/src/usecases/`   | ユースケース                                  | 実装済み |
+| `src-tauri/src/ports.rs`    | ポート（trait）                               | 実装済み |
+| `src-tauri/src/adapters/`   | JSON スナップショットによる永続化、Win32 連携 | 実装済み |
+| `src-tauri/src/commands.rs` | 画面との境界（IPC）                           | 実装済み |
+| `src/`                      | フロントエンド（Svelte + TypeScript）         | 骨格まで |
 
 ## 🛠️ 開発環境
 
@@ -76,23 +87,30 @@ Clean Architecture（Ports & Adapters）を採用し、依存方向は常に「�
 
 ```bash
 git clone https://github.com/ktama/Shelfy.git
-cd Shelfy/src-tauri
+cd Shelfy
+npm install
 
-cargo test          # テスト
-cargo clippy --all-targets
-cargo fmt --check
+# 開発中の起動
+npm run tauri dev
+
+# 実行ファイルを作る
+npm run tauri build -- --no-bundle
+
+# バックエンドのテスト
+cd src-tauri && cargo test
 ```
+
+実データに触れずに動かしたいときは、環境変数 `SHELFY_DATA_DIR` で保存先を差し替えられます。
 
 ## 📖 使い方
 
-以下は v1.0.0 での操作であり、再作成版でもそのまま引き継ぎます。
 規則の詳細は [doc/rebuild/02-SPECIFICATION.md](doc/rebuild/02-SPECIFICATION.md) にあります。
 
 ### 基本操作
 
 1. **起動** - アプリはシステムトレイに常駐します
 2. **呼び出し** - `Ctrl+Shift+Space` でウィンドウを表示/非表示
-3. **Shelf 作成** - ツールバーの「New Shelf」または `Ctrl+N`
+3. **Shelf 作成** - 左上の「＋棚」または `Ctrl+N`
 4. **アイテム追加** - ファイル・フォルダを Shelf 選択中のウィンドウにドラッグ＆ドロップ
 5. **アイテム起動** - ダブルクリックまたは `Enter` キー
 6. **閉じる** - `Escape` キーでウィンドウを非表示（トレイに常駐）
@@ -110,14 +128,15 @@ cargo fmt --check
 
 ### 並び替え
 
-- **コンテキストメニュー** - Shelf / Item を右クリック →「⬆ Move Up」「⬇ Move Down」
-- **ドラッグ＆ドロップ** - Shelf ツリーや Item リスト内でドラッグして並び替え
+- **コンテキストメニュー** - Shelf / Item を右クリック →「上へ」「下へ」
+- **ドラッグ＆ドロップ** - Item リスト内でドラッグして並び替え
 
 ### データ管理
 
-- **エクスポート** - ツールバーの「📤 Export」で全データを JSON ファイルに保存
-- **インポート** - ツールバーの「📥 Import」で JSON ファイルからデータを復元（全置換 or マージ）
-- **設定** - ツールバーの「⚙ Settings」でホットキー、起動時最小化、ウィンドウサイズなどを変更
+- **エクスポート** - 左下の「書出」で全データを JSON ファイルに保存
+- **インポート** - 左下の「取込」で JSON ファイルからデータを復元（全置換 or マージ）
+- **設定** - 左下の「設定」でホットキー、起動時最小化、ウィンドウサイズなどを変更
+- **保存先** - `%LOCALAPPDATA%\Shelfy\shelfy.json`（環境変数 `SHELFY_DATA_DIR` で差し替え可）
 
 ### キーボードショートカット
 
@@ -128,6 +147,7 @@ cargo fmt --check
 | `Enter`            | アイテム起動       |
 | `F2`               | アイテム名変更     |
 | `Delete`           | アイテム削除       |
+| `Ctrl+R`           | 再読み込み         |
 | `Escape`           | ウィンドウ非表示   |
 
 ## 📖 ドキュメント

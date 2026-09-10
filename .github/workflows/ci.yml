@@ -12,10 +12,6 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
 
-defaults:
-  run:
-    working-directory: src-tauri
-
 jobs:
   test:
     runs-on: windows-latest
@@ -23,11 +19,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 版数は src-tauri/rust-toolchain.toml で固定している
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # Rust の版数は src-tauri/rust-toolchain.toml で固定している
       - name: Show toolchain
-        run: |
-          rustup show
-          cargo --version
+        run: rustup show
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -40,11 +39,40 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # --- バックエンド ---
+
       - name: Format
+        working-directory: src-tauri
         run: cargo fmt --check
 
       - name: Clippy
+        working-directory: src-tauri
         run: cargo clippy --all-targets -- -D warnings
 
       - name: Test
+        working-directory: src-tauri
         run: cargo test --all-targets
+
+      # --- フロントエンド ---
+
+      # 型検査とビルド。tauri build は release のみで行う（時間がかかるため）
+      - name: Check and build frontend
+        run: npm run build
+
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Audit Rust dependencies
+        uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: src-tauri
+
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high

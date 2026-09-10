@@ -10,6 +10,9 @@ license = "MIT"
 name = "shelfy"
 path = "src/lib.rs"
 
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
 [features]
 # ポートの試験用実装を、この crate の外からも使えるようにする
 testing = []
@@ -19,6 +22,17 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4", "serde"] }
 time = { version = "0.3", features = ["formatting", "parsing", "macros", "serde"] }
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_System_Registry",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [dev-dependencies]
 tempfile = "3"

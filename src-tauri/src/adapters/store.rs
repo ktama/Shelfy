@@ -62,13 +62,29 @@ impl StorePaths {
         }
     }
 
-    /// `%LOCALAPPDATA%\Shelfy` を使う
+    /// `%LOCALAPPDATA%\Shelfy` を使う。
+    /// 環境変数 `SHELFY_DATA_DIR` があれば、そちらを優先する。
+    /// 開発中に実データへ触れずに動かすための逃げ道である。
     pub fn default_location() -> io::Result<Self> {
-        let base = std::env::var("LOCALAPPDATA")
-            .map_err(|_| io::Error::new(io::ErrorKind::NotFound, "LOCALAPPDATA is not set"))?;
-        let dir = PathBuf::from(base).join("Shelfy");
+        let dir = match std::env::var("SHELFY_DATA_DIR") {
+            Ok(custom) if !custom.trim().is_empty() => PathBuf::from(custom),
+            _ => {
+                let base = std::env::var("LOCALAPPDATA").map_err(|_| {
+                    io::Error::new(io::ErrorKind::NotFound, "LOCALAPPDATA is not set")
+                })?;
+                PathBuf::from(base).join("Shelfy")
+            }
+        };
         fs::create_dir_all(&dir)?;
         Ok(Self::in_dir(dir))
+    }
+
+    /// ログの置き場。保存ファイルと同じフォルダに置く。
+    pub fn log_file(&self) -> PathBuf {
+        self.main
+            .parent()
+            .map(|d| d.join("Shelfy.log"))
+            .unwrap_or_else(|| PathBuf::from("Shelfy.log"))
     }
 
     fn dir(&self) -> Option<&Path> {

@@ -1,18 +1,17 @@
-# リリース用のワークフロー。
-#
-# 再作成の途中のため、まだ自動では走らせない。
-# 配布できる実行ファイルが揃うのはフェーズ 4 以降であり、
-# 中身はフェーズ 8 で組み直す（doc/rebuild/05-REBUILD_PLAN.md 第 6 節）。
-#
-# それまでのあいだ、タグを push しても何も起きないよう、
-# 起動を手動（workflow_dispatch）だけに絞ってある。
 name: Release
 
 on:
+  push:
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
   contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  # 配布物の上限（doc/rebuild/02-SPECIFICATION.md 第 11 節）
+  MAX_EXE_BYTES: 10485760
 
 jobs:
   release:
@@ -21,7 +20,69 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Not ready yet
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # Rust の版数は src-tauri/rust-toolchain.toml で固定している
+      - name: Show toolchain
+        run: rustup show
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Test
+        working-directory: src-tauri
+        run: cargo test --all-targets
+
+      # インストーラは作らない。実行ファイルを 1 つ置くだけで動く形で配る。
+      - name: Build
+        run: npm run tauri build -- --no-bundle
+
+      # 依存を足したときに、配布サイズが静かに戻るのを防ぐ
+      - name: Check size
+        shell: pwsh
         run: |
-          Write-Host "リリースの組み立てはフェーズ 8 で用意します。"
-          Write-Host "doc/rebuild/05-REBUILD_PLAN.md 第 6 節を参照してください。"
+          $exe = "src-tauri/target/release/shelfy.exe"
+          $size = (Get-Item $exe).Length
+          Write-Host ("shelfy.exe: {0:N0} bytes ({1:N2} MiB)" -f $size, ($size / 1MB))
+          if ($size -gt $env:MAX_EXE_BYTES) {
+            throw "配布サイズが上限を超えました: $size > $env:MAX_EXE_BYTES"
+          }
+
+      - name: Create zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path src-tauri/target/release/shelfy.exe `
+            -DestinationPath "Shelfy-${{ github.ref_name }}-win-x64.zip" -Force
+          $zip = (Get-Item "Shelfy-${{ github.ref_name }}-win-x64.zip").Length
+          Write-Host ("zip: {0:N0} bytes ({1:N2} MB)" -f $zip, ($zip / 1MB))
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: Shelfy-${{ github.ref_name }}-win-x64.zip
+          body: |
+            展開して `shelfy.exe` を置くだけで動きます。
+
+            **必要なもの**: Microsoft Edge WebView2 ランタイム。
+            Windows 11 には標準で入っています。
+            入っていない環境では、起動時にその旨を案内します。
+
+            v1.0.0（C# と WPF）からデータを移すには、
+            旧版の「エクスポート」で JSON を書き出し、本版の「取込」で読み込んでください。
+            旧版を起動できない場合は `tools/shelfy-migrate` を使えます。
+            手順は `doc/rebuild/04-DATA_MIGRATION.md` にあります。

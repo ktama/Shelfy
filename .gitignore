@@ -135,3 +135,6 @@ appsettings.*.json
 # Tauri のフロントエンド成果物
 /dist/
 node_modules/
+
+# Tauri が生成するスキーマ
+/src-tauri/gen/

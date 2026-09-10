@@ -8,6 +8,7 @@
 
 pub mod adapters;
 pub mod domain;
+pub mod hotkey;
 pub mod ports;
 pub mod usecases;
 
