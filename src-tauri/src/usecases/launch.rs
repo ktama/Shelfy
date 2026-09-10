@@ -1,4 +1,4 @@
-//! 起動と親フォルダを開く操作（doc/rebuild/02-SPECIFICATION.md 第 4.3 節）
+//! 起動と親フォルダを開く操作（doc/SPECIFICATION.md 第 4.3 節）
 
 use serde::Serialize;
 

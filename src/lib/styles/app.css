@@ -1,5 +1,5 @@
 /* Fluent 風のトークン。UI ライブラリは使わない。
-   方針は doc/rebuild/03-ARCHITECTURE.md 第 5.2 節に対応する。 */
+   方針は doc/ARCHITECTURE.md 第 5.2 節に対応する。 */
 
 :root {
   --radius-sm: 4px;

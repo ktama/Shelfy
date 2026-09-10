@@ -28,7 +28,7 @@
     onreorder,
   }: Props = $props();
 
-  // 見えている範囲だけを描く（doc/rebuild/03-ARCHITECTURE.md 第 11 節）。
+  // 見えている範囲だけを描く（doc/ARCHITECTURE.md 第 11 節）。
   // 1,000 件を素直に並べると描画に 73 ms かかり、切り替えが引っかかる。
   // 行の高さはメモの有無で 2 種類しかないので、累積和で正確な位置が出せる。
   const ROW_PLAIN = 46;
@@ -70,7 +70,7 @@
 
   // Tauri のドラッグアンドドロップを有効にしていると、画面の中では
   // HTML5 の drag イベントが動かない。並び替えはポインタで自前に行う。
-  // （doc/rebuild/03-ARCHITECTURE.md 第 9 節）
+  // （doc/ARCHITECTURE.md 第 9 節）
   let dragFrom = $state<number | null>(null);
   let dragOver = $state<number | null>(null);
   let armed = $state(false);

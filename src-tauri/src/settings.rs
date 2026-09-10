@@ -1,4 +1,4 @@
-//! 設定の保存と、その場での反映（doc/rebuild/02-SPECIFICATION.md 第 8 節）。
+//! 設定の保存と、その場での反映（doc/SPECIFICATION.md 第 8 節）。
 
 use std::str::FromStr;
 

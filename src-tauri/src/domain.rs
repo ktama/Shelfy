@@ -1,5 +1,5 @@
 //! ドメイン。UI も OS も永続化技術も知らない。
-//! 規則は doc/rebuild/02-SPECIFICATION.md 第 3 節に対応する。
+//! 規則は doc/SPECIFICATION.md 第 3 節に対応する。
 
 use std::fmt;
 

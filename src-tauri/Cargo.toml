@@ -39,7 +39,7 @@ tempfile = "3"
 # 結合テストからも試験用の実装を使う
 shelfy = { path = ".", features = ["testing"] }
 
-# 03-ARCHITECTURE.md 第 12 節のサイズ最適化設定
+# ARCHITECTURE.md 第 12 節のサイズ最適化設定
 [profile.release]
 opt-level = "s"
 lto = true

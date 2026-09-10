@@ -1,4 +1,4 @@
-//! Shelf の操作（doc/rebuild/02-SPECIFICATION.md 第 4.1 節）
+//! Shelf の操作（doc/SPECIFICATION.md 第 4.1 節）
 
 use serde::Serialize;
 

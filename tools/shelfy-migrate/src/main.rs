@@ -1,7 +1,7 @@
 //! v1.0.0（C# と WPF と SQLite）の `shelfy.db` を、
 //! 交換形式の JSON へ書き出す一度きりの道具。
 //!
-//! 使い方は doc/rebuild/04-DATA_MIGRATION.md 第 5.2 節にある。
+//! 使い方は doc/DATA_MIGRATION.md 第 5.2 節にある。
 //! 配布物には含めない。SQLite への依存を持つのは、この道具だけである。
 //!
 //! ```text
@@ -18,7 +18,7 @@ use std::process::ExitCode;
 use rusqlite::{Connection, OpenFlags};
 use serde_json::{json, Map, Value};
 
-/// 交換形式の書式バージョン（04-DATA_MIGRATION.md 第 3 節）
+/// 交換形式の書式バージョン（DATA_MIGRATION.md 第 3 節）
 const EXCHANGE_VERSION: &str = "1.0";
 
 fn main() -> ExitCode {

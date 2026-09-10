@@ -1,5 +1,5 @@
 //! ユースケースが外界に要求する能力。
-//! すべて同期で、`&self` を受ける（doc/rebuild/03-ARCHITECTURE.md 第 4.3 節）。
+//! すべて同期で、`&self` を受ける（doc/ARCHITECTURE.md 第 4.3 節）。
 
 use std::collections::BTreeMap;
 
@@ -65,7 +65,7 @@ pub trait AppLogger {
     fn error(&self, message: &str);
 }
 
-/// 設定のキー（doc/rebuild/02-SPECIFICATION.md 第 8 節）
+/// 設定のキー（doc/SPECIFICATION.md 第 8 節）
 pub mod settings_keys {
     pub const GLOBAL_HOTKEY: &str = "GlobalHotkey";
     pub const WINDOW_WIDTH: &str = "WindowWidth";

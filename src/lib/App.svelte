@@ -148,7 +148,7 @@
 
   async function showShelf(shelf: ShelfView) {
     // 検索や一覧を見ている途中で棚を選んだら、通常の表示に戻す
-    // （doc/rebuild/02-SPECIFICATION.md 第 12 節の 5 番）
+    // （doc/SPECIFICATION.md 第 12 節の 5 番）
     selectedShelfId = shelf.id;
     query = "";
     mode = "normal";
@@ -383,7 +383,7 @@
     if (result.message) status = result.message;
   }
 
-  /** ポインタでの並び替え（doc/rebuild/03-ARCHITECTURE.md 第 9 節） */
+  /** ポインタでの並び替え（doc/ARCHITECTURE.md 第 9 節） */
   async function reorderByDrag(fromIndex: number, toIndex: number) {
     if (mode !== "normal") {
       status = "並び替えは棚の表示中に行えます。";

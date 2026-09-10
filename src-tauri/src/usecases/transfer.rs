@@ -1,5 +1,5 @@
 //! エクスポートとインポート。
-//! 書式は doc/rebuild/04-DATA_MIGRATION.md 第 3 節に対応する。
+//! 書式は doc/DATA_MIGRATION.md 第 3 節に対応する。
 
 use serde::{Deserialize, Serialize};
 use time::format_description::well_known::Rfc3339;

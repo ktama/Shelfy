@@ -29,7 +29,7 @@ Shelfy は、軽量化と高速化のために Rust と Tauri v2 で作り直し
 
 配布物は **50 分の 1** になりました。v1.0.0 の 174 MiB のうち約 165 MiB は .NET ランタイムと WPF 本体で、自作コードは 300 KiB 弱でした。描画を Windows に元からある WebView2 へ任せることで、実行ファイルには自分のコードだけを載せています。
 
-選定の経緯、仕様、設計、計測の記録は [doc/rebuild/](doc/rebuild/) にあります。
+仕様と設計は [doc/](doc/) にあります。
 
 ### 必要なもの
 
@@ -40,7 +40,7 @@ Shelfy は、軽量化と高速化のために Rust と Tauri v2 で作り直し
 1. v1.0.0 の「📤 Export」で JSON を書き出す
 2. 本版の「取込」で読み込む
 
-v1.0.0 を起動できない場合は、`tools/shelfy-migrate` で `shelfy.db` から直接 JSON を作れます。手順は [04-DATA_MIGRATION.md](doc/rebuild/04-DATA_MIGRATION.md) にあります。
+v1.0.0 を起動できない場合は、`tools/shelfy-migrate` で `shelfy.db` から直接 JSON を作れます。手順は [DATA_MIGRATION.md](doc/DATA_MIGRATION.md) にあります。
 
 以前の版はタグ `v1.0.0` から取得できます。
 
@@ -68,20 +68,22 @@ Clean Architecture（Ports & Adapters）を採用し、依存方向は常に「�
 
 ### 構成
 
-| 場所                        | 説明                                          | 状態     |
-| --------------------------- | --------------------------------------------- | -------- |
-| `src-tauri/src/domain.rs`   | ドメインモデル                                | 実装済み |
-| `src-tauri/src/usecases/`   | ユースケース                                  | 実装済み |
-| `src-tauri/src/ports.rs`    | ポート（trait）                               | 実装済み |
-| `src-tauri/src/adapters/`   | JSON スナップショットによる永続化、Win32 連携 | 実装済み |
-| `src-tauri/src/commands.rs` | 画面との境界（IPC）                           | 実装済み |
-| `src/`                      | フロントエンド（Svelte + TypeScript）         | 骨格まで |
+| 場所                         | 説明                                          |
+| ---------------------------- | --------------------------------------------- |
+| `src-tauri/src/domain.rs`    | ドメインモデル                                |
+| `src-tauri/src/usecases/`    | ユースケース                                  |
+| `src-tauri/src/ports.rs`     | ポート（trait）                               |
+| `src-tauri/src/adapters/`    | JSON スナップショットによる永続化、Win32 連携 |
+| `src-tauri/src/commands.rs`  | 画面との境界（IPC、参照系）                   |
+| `src-tauri/src/mutations.rs` | 画面との境界（IPC、更新系）                   |
+| `src/`                       | フロントエンド（Svelte + TypeScript）         |
+| `tools/shelfy-migrate/`      | v1.0.0 からの移行ツール（配布物には含めない） |
 
 ## 🛠️ 開発環境
 
 - **Rust**（版数は `src-tauri/rust-toolchain.toml` で固定）
 - **Tauri v2** と **WebView2**（Windows 11 には標準搭載）
-- **Node.js**（フロントエンドのビルド、フェーズ 4 から）
+- **Node.js 22**（フロントエンドのビルドにだけ使います）
 
 ## 🚀 ビルドとテスト
 
@@ -96,7 +98,7 @@ npm run tauri dev
 # 実行ファイルを作る
 npm run tauri build -- --no-bundle
 
-# バックエンドのテスト
+# バックエンドのテスト（141 件）
 cd src-tauri && cargo test
 ```
 
@@ -104,7 +106,7 @@ cd src-tauri && cargo test
 
 ## 📖 使い方
 
-規則の詳細は [doc/rebuild/02-SPECIFICATION.md](doc/rebuild/02-SPECIFICATION.md) にあります。
+規則の詳細は [doc/SPECIFICATION.md](doc/SPECIFICATION.md) にあります。
 
 ### 基本操作
 
@@ -152,15 +154,14 @@ cd src-tauri && cargo test
 
 ## 📖 ドキュメント
 
-詳細なドキュメントは [doc/](doc/) フォルダを参照してください。
+[doc/](doc/) に一式を置いてあります。
 
-| ドキュメント                                         | 説明                                                |
-| ---------------------------------------------------- | --------------------------------------------------- |
-| [rebuild/](doc/rebuild/)                             | **再作成の一式**（選定、仕様、設計、移行、進め方）  |
-| [SPECIFICATION.md](doc/SPECIFICATION.md)             | 機能仕様書（概念の輪郭）                            |
-| [DESIGN.md](doc/DESIGN.md)                           | v1.0.0 のアーキテクチャ設計書（記録）               |
-| [UI_DESIGN.md](doc/UI_DESIGN.md)                     | v1.0.0 の UI 設計書（記録、見た目の意図は引き継ぐ） |
-| [IMPLEMENTATION_PLAN.md](doc/IMPLEMENTATION_PLAN.md) | v1.0.0 の実装計画（記録）                           |
+| ドキュメント                               | 説明                                              |
+| ------------------------------------------ | ------------------------------------------------- |
+| [SPECIFICATION.md](doc/SPECIFICATION.md)   | 振る舞いの規則。ドメイン、検索、画面、非機能要件  |
+| [ARCHITECTURE.md](doc/ARCHITECTURE.md)     | 実現の仕方。層、IPC、永続化、Windows 連携、ビルド |
+| [DATA_MIGRATION.md](doc/DATA_MIGRATION.md) | 保存形式、交換形式、v1.0.0 からの移行             |
+| [DEVELOPMENT.md](doc/DEVELOPMENT.md)       | 環境、テスト、手動確認、計測、CI                  |
 
 ## 📝 ライセンス
 

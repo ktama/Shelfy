@@ -1,4 +1,4 @@
-//! 検索（doc/rebuild/02-SPECIFICATION.md 第 5 節）
+//! 検索（doc/SPECIFICATION.md 第 5 節）
 
 use std::collections::HashSet;
 

@@ -1,6 +1,6 @@
 // Segoe Fluent Icons のグリフ。
 // Windows 11 に標準搭載されたフォントを使うため、アイコンを同梱しない。
-// 対応は doc/UI_DESIGN.md 第 4 節を引き継ぐ。
+// 見た目の方針は doc/ARCHITECTURE.md 第 5.2 節にある。
 
 import type { ItemKind } from "./ipc";
 

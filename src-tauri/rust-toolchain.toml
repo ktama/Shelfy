@@ -1,5 +1,5 @@
 # ビルド結果が版数の更新で変わらないよう固定する
-# （doc/rebuild/05-REBUILD_PLAN.md 第 6 節）
+# （doc/DEVELOPMENT.md 第 2 節）
 [toolchain]
 channel = "1.96.0"
 components = ["rustfmt", "clippy"]

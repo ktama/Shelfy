@@ -1,4 +1,4 @@
-//! 移行の検証（doc/rebuild/04-DATA_MIGRATION.md 第 6 節）。
+//! 移行の検証（doc/DATA_MIGRATION.md 第 6 節）。
 //!
 //! v1.0.0 の `shelfy.db` から `tools/shelfy-migrate` が書き出した JSON を、
 //! 再作成版が取り込めることを確かめる。

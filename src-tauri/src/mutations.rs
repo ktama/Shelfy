@@ -1,4 +1,4 @@
-//! 更新系のコマンド（doc/rebuild/03-ARCHITECTURE.md 第 6.2 節）。
+//! 更新系のコマンド（doc/ARCHITECTURE.md 第 6.2 節）。
 //! 読み取りと起動は `commands` にある。
 
 use serde::Serialize;
@@ -214,7 +214,7 @@ pub fn reorder_shelves(
 
 // ---------------------------------------------------------------- Item
 
-/// 参照先から種別と既定の表示名を決める（02-SPECIFICATION.md 第 9.3 節）
+/// 参照先から種別と既定の表示名を決める（SPECIFICATION.md 第 9.3 節）
 fn classify(target: &str) -> (ItemType, String) {
     let lower = target.to_ascii_lowercase();
     if lower.starts_with("http://") || lower.starts_with("https://") {

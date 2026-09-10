@@ -1,5 +1,5 @@
 // バックエンドとの境界。ここだけが Tauri の API を知る。
-// コマンドの一覧は doc/rebuild/03-ARCHITECTURE.md 第 6.2 節に対応する。
+// コマンドの一覧は doc/ARCHITECTURE.md 第 6.2 節に対応する。
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";

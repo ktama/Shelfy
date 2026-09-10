@@ -1,5 +1,5 @@
 //! JSON スナップショットによる永続化。
-//! 方式は doc/rebuild/03-ARCHITECTURE.md 第 7 節、書式は 04-DATA_MIGRATION.md 第 4 節に対応する。
+//! 方式は doc/ARCHITECTURE.md 第 7 節、書式は DATA_MIGRATION.md 第 4 節に対応する。
 //!
 //! 起動時に 1 個のファイルを読み込んで全データをメモリに載せ、
 //! 更新はメモリ上で行い、一定時間まとめてからファイルへ書き戻す。

@@ -1,9 +1,12 @@
-# 再作成後のアーキテクチャ設計
+# アーキテクチャ
 
 ## 1. この文書の位置づけ
 
-[01-STACK_REVIEW.md](01-STACK_REVIEW.md) で決めたスタック（Rust、Tauri v2、WebView2、JSON スナップショット永続化）で、[02-SPECIFICATION.md](02-SPECIFICATION.md) の仕様をどう実現するかを記述する。
-具体的な API 名や設定名に踏み込むのは、実装時に迷いやすい箇所と、選択を誤ると後戻りが大きい箇所に限る。
+[SPECIFICATION.md](SPECIFICATION.md) の仕様を、Rust と Tauri v2 と WebView2 でどう実現しているかを記述する。
+具体的な API 名や設定名に踏み込むのは、触るときに迷いやすい箇所と、選択を誤ると後戻りが大きい箇所に限る。
+
+スタックは配布サイズを最優先して選んだ。
+その判断で受け入れた前提は第 15 節にまとめてある。
 
 ## 2. 全体構成
 
@@ -40,43 +43,56 @@ Clean Architecture の依存方向は維持する。
 `domain` と `usecases` は Tauri も Windows API もファイルシステムも知らない。
 外界とのやり取りは `ports` に置いた trait を通す。
 
-この分離を保つ理由は、現行の C# 実装で最も価値があった部分がここだったからである。
-ドメインとユースケースが UI から独立していたおかげで、121 個のテストが仕様の記録として機能していた。
-言語が変わっても、この構造は引き継ぐ。
+この分離を保つ理由は、ドメインとユースケースが UI から独立していれば、テストが仕様の記録として機能するからである。
+実際、全 141 個のテストのうち大半は Tauri も Windows API も起動せずに走る。
+表示の枠組みを入れ替えても、この層は書き直さずに済む。
 
 ## 3. リポジトリ構成
 
 ```text
-shelfy/
-├─ src/                        フロントエンド
-│   ├─ lib/
-│   │   ├─ components/         ツリー、一覧、ダイアログ
-│   │   ├─ styles/             Fluent 風のトークンとスタイル
-│   │   ├─ ipc.ts              コマンドとイベントの型付き薄いラッパ
-│   │   └─ state.svelte.ts     表示状態（バックエンドの写しとして扱う）
-│   ├─ index.html
-│   └─ main.ts
+Shelfy/
+├─ index.html                    フロントエンドの入口（Vite が読む）
+├─ src/                          フロントエンド
+│   ├─ main.ts                   App の取り付け
+│   └─ lib/
+│       ├─ App.svelte            画面全体の取りまとめ
+│       ├─ components/           ShelfTree、ItemList、Dialog、ContextMenu
+│       ├─ styles/app.css        Fluent 風のトークンとスタイル
+│       ├─ ipc.ts                コマンドとイベントの型付き薄いラッパ
+│       └─ icons.ts              Segoe Fluent Icons のグリフ
 ├─ src-tauri/
 │   ├─ src/
-│   │   ├─ domain/             Shelf、Item、識別子、種別
-│   │   ├─ usecases/           shelves、items、launch、search、transfer
-│   │   ├─ ports/              trait 定義
-│   │   ├─ adapters/
-│   │   │   ├─ store/          JSON スナップショット
-│   │   │   └─ windows/        ホットキー、起動、存在確認、時計、ログ
-│   │   ├─ commands.rs         IPC の境界
-│   │   ├─ state.rs            アプリ状態の保持
-│   │   └─ main.rs             組み立てと起動
+│   │   │                        ── ライブラリ（Tauri を知らない）──
+│   │   ├─ lib.rs                ライブラリの入口
+│   │   ├─ domain.rs             Shelf、Item、識別子、種別
+│   │   ├─ ports.rs              trait 定義
+│   │   ├─ usecases/             shelves、items、launch、search、transfer
+│   │   ├─ adapters/             store（JSON）、windows（Win32）、existence（キャッシュ）
+│   │   ├─ hotkey.rs             ホットキー文字列の解析
+│   │   ├─ testing.rs            ポートの試験用実装（feature = "testing"）
+│   │   │                        ── バイナリ（Tauri を知る）──
+│   │   ├─ main.rs               組み立てと起動
+│   │   ├─ commands.rs           IPC の境界（参照系）
+│   │   ├─ mutations.rs          IPC の境界（更新系）
+│   │   ├─ settings.rs           設定の保存とホットキーの再登録
+│   │   ├─ existence_check.rs    背景での存在確認
+│   │   └─ state.rs              アプリ状態の保持
+│   ├─ capabilities/default.json 権限の宣言（第 6.0 節）
+│   ├─ tests/                    ファイル越しの結合、性能、移行
+│   ├─ icons/shelfy.ico
+│   ├─ rust-toolchain.toml       ツールチェーンの固定
 │   ├─ Cargo.toml
 │   └─ tauri.conf.json
+├─ tools/shelfy-migrate/         v1.0.0 の SQLite を読む一度きりの道具（配布物に含めない）
 └─ doc/
 ```
 
-C# 実装は 2026-09-10 に `main` から削除した。
-タグ `v1.0.0` が削除前の状態を指しているため、参照はできる。
-併存させると、どちらが正なのか分からない状態が続くためである。
+ライブラリ側は `tauri` を一切参照しない。
+この境界があるおかげで、ドメインとユースケースのテストは WebView2 を起動せずに走る。
+新しい依存をライブラリ側へ足すときは、この性質を壊していないか確かめる。
 
-アプリのアイコンだけは `src-tauri/icons/shelfy.ico` に移してある。
+v1.0.0 の C# 実装はタグ `v1.0.0` にある。
+`main` からは削除した。併存させると、どちらが正なのか分からない状態が続くためである。
 
 ## 4. Rust 側の設計
 
@@ -181,16 +197,19 @@ Mica は設定ファイルのウィンドウ効果で指定する。
 宣言がないと、自前のコマンドは呼べるのに、**イベントの受信とドラッグアンドドロップの通知だけが黙って届かない**。
 例外も警告も出ないため、原因の特定に時間がかかる。
 
-最低限、次を宣言する。
+`src-tauri/capabilities/default.json` に宣言してある内容を挙げる。
 
-```text
-core:default
-core:event:default
-core:webview:default
-core:window:allow-hide / allow-show / allow-set-focus
-```
+| 権限                                                        | 何のために要るか                       |
+| ----------------------------------------------------------- | -------------------------------------- |
+| `core:default`                                              | 基本の一式                             |
+| `core:event:default`                                        | イベントの受信（第 6.3 節）            |
+| `core:webview:default`                                      | エクスプローラからのドロップの通知     |
+| `core:window:allow-hide` / `allow-show` / `allow-set-focus` | 表示と非表示の切り替え                 |
+| `core:window:allow-start-dragging`                          | 自前のタイトルバーで掴んで動かす       |
+| `core:window:allow-inner-size` / `allow-set-size`           | ウィンドウサイズの保存と復元           |
+| `dialog:allow-open` / `dialog:allow-save`                   | エクスポートとインポートのファイル選択 |
 
-フェーズ 1 で実際にこれを踏んだ（[06-PHASE1-RESULT.md](06-PHASE1-RESULT.md) 第 4.1 節）。
+機能を足してイベントやウィンドウ操作が「なぜか効かない」場合、まずここを疑う。
 
 ### 6.1 粒度
 
@@ -202,47 +221,59 @@ core:window:allow-hide / allow-show / allow-set-focus
 
 ### 6.2 コマンド
 
-| コマンド             | 入力                       | 返す値                       |
-| -------------------- | -------------------------- | ---------------------------- |
-| `load_shelves`       | なし                       | Shelf の一覧（階層情報付き） |
-| `load_items`         | Shelf                      | Item の一覧                  |
-| `search`             | クエリ文字列               | 検索結果（Shelf 名付き）     |
-| `recent_items`       | 件数                       | 最近の Item                  |
-| `missing_items`      | なし                       | 欠損の Item                  |
-| `create_shelf`       | 名前、親                   | 作成結果                     |
-| `rename_shelf`       | Shelf、新しい名前          | 結果                         |
-| `move_shelf`         | Shelf、新しい親            | 結果                         |
-| `delete_shelf`       | Shelf                      | 結果                         |
-| `toggle_pin_shelf`   | Shelf                      | 反転後の状態                 |
-| `reorder_shelves`    | 並び替え後の識別子の列     | 結果                         |
-| `add_items`          | Shelf、パスまたは URL の列 | 追加結果の列                 |
-| `remove_item`        | Item                       | 結果                         |
-| `rename_item`        | Item、新しい表示名         | 結果                         |
-| `update_item_memo`   | Item、メモ                 | 結果                         |
-| `move_item_to_shelf` | Item、移動先 Shelf         | 結果                         |
-| `reorder_items`      | 並び替え後の識別子の列     | 結果                         |
-| `launch_item`        | Item                       | 結果と起動後の画面制御       |
-| `open_parent_folder` | Item                       | 結果                         |
-| `export_data`        | 保存先                     | 結果                         |
-| `import_data`        | 読み込み元、全置換かどうか | 取り込み件数と除外件数       |
-| `get_settings`       | なし                       | 設定一式                     |
-| `save_settings`      | 設定一式                   | 結果                         |
-| `hide_window`        | なし                       | なし                         |
+参照系は `commands.rs`、更新系は `mutations.rs` にある。
 
-`add_items` を複数受け取る形にしているのは、エクスプローラから複数ファイルをまとめて落とせるためである。
+| コマンド             | 入力                       | 返す値                             |
+| -------------------- | -------------------------- | ---------------------------------- |
+| `startup_info`       | なし                       | Shelf 一覧、設定、ホットキーの警告 |
+| `load_shelves`       | なし                       | Shelf の一覧（階層情報付き）       |
+| `load_items`         | Shelf                      | Item の一覧                        |
+| `search`             | クエリ文字列               | 検索結果（Shelf 名付き）           |
+| `recent_items`       | なし                       | 最近の Item（件数は設定に従う）    |
+| `missing_items`      | なし                       | 欠損の Item                        |
+| `create_shelf`       | 名前、親                   | 作成結果                           |
+| `rename_shelf`       | Shelf、新しい名前          | 結果                               |
+| `move_shelf`         | Shelf、新しい親            | 結果                               |
+| `delete_shelf`       | Shelf                      | 結果                               |
+| `toggle_pin_shelf`   | Shelf                      | 反転後の状態                       |
+| `reorder_shelves`    | 並び替え後の識別子の列     | 結果                               |
+| `add_items`          | Shelf、パスの列            | 追加結果の列                       |
+| `add_url`            | Shelf、URL、表示名         | 追加結果                           |
+| `remove_item`        | Item                       | 結果                               |
+| `rename_item`        | Item、新しい表示名         | 結果                               |
+| `update_item_memo`   | Item、メモ                 | 結果                               |
+| `move_item_to_shelf` | Item、移動先 Shelf         | 結果                               |
+| `reorder_items`      | 並び替え後の識別子の列     | 結果                               |
+| `launch`             | Item                       | 結果と起動後の画面制御             |
+| `open_parent`        | Item                       | 結果                               |
+| `export_data`        | 保存先                     | 結果                               |
+| `import_data`        | 読み込み元、全置換かどうか | 取り込み件数と除外件数             |
+| `save_settings`      | 設定一式                   | 結果                               |
+| `check_existence`    | Item の識別子の列          | なし（結果はイベントで返す）       |
+| `hide_window`        | なし                       | なし                               |
+
+`add_items` が複数を受け取るのは、エクスプローラから複数ファイルをまとめて落とせるためである。
 1 件ずつ呼ぶと往復が件数分になる。
+
+設定の取得に専用のコマンドを置かず `startup_info` に含めるのは、
+起動直後に必ず要る一式を 1 往復で渡すためである。
+以後に設定が変わるのは `save_settings` を呼んだときだけで、そのときは戻り値で受け取る。
 
 ### 6.3 イベント
 
-| イベント            | 向き               | 内容                                  |
-| ------------------- | ------------------ | ------------------------------------- |
-| `hotkey-toggled`    | バックからフロント | ホットキーで表示状態が変わった        |
-| `existence-updated` | バックからフロント | 存在確認の結果（Item と有無の組の列） |
-| `data-reloaded`     | バックからフロント | インポートなどで全体が入れ替わった    |
-| `status`            | バックからフロント | 利用者へ見せる通知                    |
+いずれもバックエンドからフロントエンドへの片方向である。
+
+| イベント             | 内容                                           |
+| -------------------- | ---------------------------------------------- |
+| `window-shown`       | ウィンドウが表示された（検索入力に焦点を戻す） |
+| `hotkey-unavailable` | ホットキーを登録できなかった旨とその文言       |
+| `existence-updated`  | 存在確認の結果（Item と有無の組を 25 件ずつ）  |
 
 存在確認をイベントで返すのは、一覧の表示を待たせないためである。
 一覧はまず出し、確認できたものから印を付ける。
+25 件ずつ刻むのは、1 件ごとだと往復が増え、全件一括だと最初の反映が遅れるためである。
+
+フロント側の受け口は `src/lib/ipc.ts` の `onWindowShown`、`onHotkeyUnavailable`、`onExistenceUpdated` に閉じてある。
 
 ## 7. 永続化
 
@@ -251,7 +282,7 @@ core:window:allow-hide / allow-show / allow-set-focus
 起動時に 1 個の JSON ファイルを読み込み、全データをメモリ上に保持する。
 更新はメモリ上のデータに対して行い、一定時間まとめてからファイルへ書き戻す。
 
-書式は [04-DATA_MIGRATION.md](04-DATA_MIGRATION.md) で定義する。
+書式は [DATA_MIGRATION.md](DATA_MIGRATION.md) で定義する。
 
 | ファイル                                | 内容                                |
 | --------------------------------------- | ----------------------------------- |
@@ -276,7 +307,7 @@ core:window:allow-hide / allow-show / allow-set-focus
 1 万件を超えて走査が目に見えるようになったら、そのときに索引を足す。
 判断は計測に基づいて行う。
 
-現行の検索が抱えていた N+1 は、Shelf 名の照合もメモリ上で行うことで消える。
+Shelf 名の照合もメモリ上で行うため、検索で問い合わせが件数分に増えることはない。
 
 ### 7.3 保存
 
@@ -412,7 +443,7 @@ Rust の release ビルドでは、サイズを優先した設定にする。
 フロントエンドは 1 つの HTML に束ね、分割読み込みを行わない。
 起動時のファイル読み込み回数を減らすためである。
 
-サイズの回帰を防ぐため、ビルド後に実行ファイルの大きさを検査する手順を CI に入れる。
+サイズの回帰を防ぐため、リリースの手順で実行ファイルの大きさを検査し、上限を超えたら失敗させている（[DEVELOPMENT.md](DEVELOPMENT.md) 第 6 節）。
 
 ## 13. エラー処理
 
@@ -433,11 +464,38 @@ Rust 側で復帰不能な状態に落ちないよう、ユースケースの境
 | 対象                   | 方法                                                          |
 | ---------------------- | ------------------------------------------------------------- |
 | ドメインとユースケース | Rust の単体テスト。ポートの trait に試験用の実装を差し替える  |
-| 仕様の網羅             | 現行の 121 個のテストメソッドが見ていた観点を移植する         |
 | JSON ストア            | 読み書き、原子的置き換え、破損ファイルからの回復を検証する    |
 | 検索の解釈             | クエリの解析と一致規則を、境界値を含めて検証する              |
-| フロントエンド         | 表示の分岐が多い箇所に絞る。全面的な UI テストは行わない      |
-| Windows 連携と体験     | [05-REBUILD_PLAN.md](05-REBUILD_PLAN.md) の手動確認で担保する |
+| ファイル越しの往復     | `tests/usecases_over_files.rs` で実物のストアを使って確かめる |
+| 性能                   | `tests/performance.rs` で 1,000 件の検索応答を測る            |
+| 移行                   | `tests/migration.rs` で移行ツールの出力を取り込む             |
+| フロントエンド         | `svelte-check` による型検査のみ。全面的な UI テストは行わない |
+| Windows 連携と体験     | [DEVELOPMENT.md](DEVELOPMENT.md) 第 4 節の手動確認で担保する  |
 
 ホットキー、トレイ、ドラッグアンドドロップ、日本語入力は、OS との対話が本体であり自動化の費用が見合わない。
 手順を決めた手動確認で担保する。
+
+## 15. 受け入れた前提
+
+配布サイズを最優先した結果、次の 2 点を代償として受け入れている。
+前提が変われば、スタックの選択自体を見直す。
+
+### 15.1 常駐メモリ
+
+WebView2 は独立したプロセス群として動くため、常駐時のメモリは WPF 実装より増えうる。
+放置はせず、次を設計に織り込んである。
+
+- ウィンドウ非表示中は描画と再計算を止める（第 11 節）
+- 一覧は必要な範囲だけを描画する（仮想スクロール）
+- フロントエンドに UI ライブラリを持たず、常駐する JavaScript を最小にする
+
+実測はプライベート ワーキングセットで 80.8 MB であり、目標の 100 MB に収まっている。
+
+### 15.2 WebView2 の存在
+
+配布する exe に描画エンジンを含めないため、実行環境に WebView2 ランタイムが要る。
+Windows 11 には標準搭載されている。
+Windows 10 でも Edge の更新を通じて広く配布されているが、無い環境が残る可能性はある。
+
+「単一 exe を置くだけで動く」という条件は、この一点だけ OS 側への依存を残す。
+対処は第 8.4 節にある。

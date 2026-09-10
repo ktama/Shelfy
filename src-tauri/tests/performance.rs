@@ -1,6 +1,6 @@
-//! 性能の計測（doc/rebuild/05-REBUILD_PLAN.md 第 5.3 節）。
+//! 性能の計測（doc/DEVELOPMENT.md 第 5.3 節）。
 //!
-//! 目標は [02-SPECIFICATION.md](../../doc/rebuild/02-SPECIFICATION.md) 第 11 節にある。
+//! 目標は [SPECIFICATION.md](../../doc/SPECIFICATION.md) 第 11 節にある。
 //! 実ファイルを使うストアに対して、想定の上限に近い量で測る。
 
 use std::time::{Duration, Instant};
@@ -15,7 +15,7 @@ use shelfy::usecases::shelves::{create_shelf, CreateShelfResult};
 use tempfile::TempDir;
 use time::macros::datetime;
 
-/// 想定するデータ量の上限（02-SPECIFICATION.md 第 11 節）
+/// 想定するデータ量の上限（SPECIFICATION.md 第 11 節）
 const SHELVES: usize = 100;
 const ITEMS: usize = 1_000;
 

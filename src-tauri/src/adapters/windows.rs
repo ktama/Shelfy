@@ -1,4 +1,4 @@
-//! Windows 連携（doc/rebuild/03-ARCHITECTURE.md 第 8 節）。
+//! Windows 連携（doc/ARCHITECTURE.md 第 8 節）。
 //! OS を知るのはこのファイルと `store` に限る。
 
 use std::ffi::OsStr;
@@ -46,7 +46,7 @@ impl ExistenceChecker for FileExistenceChecker {
         if target.trim().is_empty() {
             return false;
         }
-        // URL は通信せず存在する扱いにする（02-SPECIFICATION.md 第 4.2 節）
+        // URL は通信せず存在する扱いにする（SPECIFICATION.md 第 4.2 節）
         let lower = target.to_ascii_lowercase();
         if lower.starts_with("http://") || lower.starts_with("https://") {
             return true;
@@ -206,7 +206,7 @@ impl AppLogger for FileLogger {
 /// WebView2 ランタイムの版数。無ければ `None`。
 ///
 /// この構成で唯一、実行環境に前提を置く箇所であり、
-/// 黙って落ちないよう起動前に確かめる（03-ARCHITECTURE.md 第 8.4 節）。
+/// 黙って落ちないよう起動前に確かめる（ARCHITECTURE.md 第 8.4 節）。
 pub fn webview2_version() -> Option<String> {
     const CLIENT: &str = "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
     let candidates = [

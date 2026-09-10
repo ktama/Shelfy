@@ -1,4 +1,4 @@
-//! Item の操作（doc/rebuild/02-SPECIFICATION.md 第 4.2 節）
+//! Item の操作（doc/SPECIFICATION.md 第 4.2 節）
 
 use serde::Serialize;
 

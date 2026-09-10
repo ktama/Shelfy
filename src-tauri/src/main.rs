@@ -1,4 +1,4 @@
-//! 組み立てと起動（doc/rebuild/03-ARCHITECTURE.md 第 10 節）。
+//! 組み立てと起動（doc/ARCHITECTURE.md 第 10 節）。
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;

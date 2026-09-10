@@ -10,7 +10,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  # 配布物の上限（doc/rebuild/02-SPECIFICATION.md 第 11 節）
+  # 配布物の上限（doc/SPECIFICATION.md 第 11 節）
   MAX_EXE_BYTES: 10485760
 
 jobs:
@@ -85,4 +85,4 @@ jobs:
             v1.0.0（C# と WPF）からデータを移すには、
             旧版の「エクスポート」で JSON を書き出し、本版の「取込」で読み込んでください。
             旧版を起動できない場合は `tools/shelfy-migrate` を使えます。
-            手順は `doc/rebuild/04-DATA_MIGRATION.md` にあります。
+            手順は `doc/DATA_MIGRATION.md` にあります。
