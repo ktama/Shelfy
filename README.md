@@ -81,7 +81,7 @@ Clean Architecture（Ports & Adapters）を採用し、依存方向は常に「�
 
 ## 🛠️ 開発環境
 
-- **Rust**（版数は `src-tauri/rust-toolchain.toml` で固定）
+- **Rust**（版数は `rust-toolchain.toml` で固定）
 - **Tauri v2** と **WebView2**（Windows 11 には標準搭載）
 - **Node.js 22**（フロントエンドのビルドにだけ使います）
 
@@ -98,7 +98,7 @@ npm run tauri dev
 # 実行ファイルを作る
 npm run tauri build -- --no-bundle
 
-# バックエンドのテスト（141 件）
+# バックエンドのテスト（166 件）
 cd src-tauri && cargo test
 ```
 

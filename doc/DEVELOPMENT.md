@@ -9,14 +9,15 @@ Shelfy を手元でビルドし、検査し、計測し、配るための手順�
 
 ## 2. 環境
 
-| 道具     | 版数                                   | 備考                             |
-| -------- | -------------------------------------- | -------------------------------- |
-| Rust     | `src-tauri/rust-toolchain.toml` で固定 | 現在 1.96.0、MSVC 向け           |
-| Node.js  | 22                                     | フロントエンドのビルドにだけ使う |
-| WebView2 | Windows 11 は標準搭載                  | 実行時に要る。ビルドには要らない |
+| 道具     | 版数                         | 備考                             |
+| -------- | ---------------------------- | -------------------------------- |
+| Rust     | `rust-toolchain.toml` で固定 | 現在 1.96.0、MSVC 向け           |
+| Node.js  | 22                           | フロントエンドのビルドにだけ使う |
+| WebView2 | Windows 11 は標準搭載        | 実行時に要る。ビルドには要らない |
 
 Rust の版数を固定するのは、更新でビルド結果が変わるのを避けるためである。
 `rustup` は `rust-toolchain.toml` を見て自動で切り替える。
+リポジトリ直下に置いてあるので、`src-tauri` と `tools/shelfy-migrate` のどちらで作業しても同じ版数になる。
 
 ### 2.1 手順
 
@@ -42,8 +43,18 @@ cargo clippy --all-targets -- -D warnings
 cargo test --all-targets
 ```
 
+移行ツールは別の crate なので、そちらでも同じ検査を走らせる。
+
+```bash
+cd tools/shelfy-migrate
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test
+```
+
 Rust のビルドは初回が長い。
 `target/` を消さずに済ませ、リリース以外では最適化を効かせない既定の設定でビルドする。
+道具は `rusqlite` を bundled で使うため、初回は SQLite 本体の C コードをコンパイルする。
 
 ### 2.2 実データに触れずに動かす
 
@@ -60,7 +71,7 @@ $env:SHELFY_DATA_DIR = "C:\temp\shelfy-test"
 
 ### 3.1 現状
 
-全 141 個。`cargo test --all-targets` で走る。
+src-tauri で 166 個、移行ツールで 3 個、合わせて 169 個。
 
 | 置き場所                       | 件数 | 対象                                     |
 | ------------------------------ | ---- | ---------------------------------------- |
@@ -71,15 +82,22 @@ $env:SHELFY_DATA_DIR = "C:\temp\shelfy-test"
 | `src/usecases/search.rs`       | 21   | クエリの解析と一致規則                   |
 | `src/usecases/launch.rs`       | 8    | 起動、親フォルダ、起動後の画面制御       |
 | `src/usecases/transfer.rs`     | 17   | Export と Import、日時の往復             |
+| `src/usecases/settings.rs`     | 7    | 設定の既定値と、解析できない値の扱い     |
 | `src/adapters/store.rs`        | 14   | 読み書き、原子的置き換え、破損からの回復 |
 | `src/adapters/existence.rs`    | 5    | 存在確認のキャッシュと失効               |
 | `src/adapters/windows.rs`      | 6    | Win32 連携の薄い部分                     |
+| `src/commands.rs`              | 8    | 画面へ渡す形の契約と識別子の読み取り     |
+| `src/mutations.rs`             | 10   | 取り込み時の種別判定と URL の検査        |
 | `tests/usecases_over_files.rs` | 6    | 実物のストアを使ったファイル越しの往復   |
 | `tests/performance.rs`         | 4    | 1,000 件での検索応答（第 5.3 節）        |
 | `tests/migration.rs`           | 2    | 移行ツールの出力を取り込めること         |
 
 ドメインとユースケースのテストは、ポートの trait を `testing.rs` の試験用実装に差し替えて走る。
 Tauri も WebView2 も起動しないため速い。
+
+移行ツールは別 crate で、`tools/shelfy-migrate` で `cargo test` すると 3 件走る。
+v1.0.0 の形の SQLite を組み立てて変換し、交換形式になることと、元のファイルが 1 バイトも変わらないことを確かめる。
+`src-tauri/tests/migration.rs` が「その形を取り込める」側を見ているので、両方で移行経路が閉じる。
 
 ### 3.2 網羅すべき観点
 
@@ -109,6 +127,10 @@ Tauri も WebView2 も起動しないため速い。
 | GetMissingItems    | 存在しない参照の抽出、URL の扱い                                         |
 | 検索               | クエリの解析、4 つの照合対象、3 種の絞り込み、空クエリ、不正な値         |
 | Export と Import   | 書式の往復、全置換とマージ、除外規則                                     |
+| 取り込み時の種別   | URL とフォルダとファイルの判別、既定の表示名、空にならないこと           |
+| URL の検査         | `http` と `https` の絶対 URL だけを通す                                  |
+| 設定               | 既定値、解析できない値の置き換え、復元できない大きさの排除               |
+| 画面へ渡す形       | `ItemView` などの鍵の集合と種別の綴りが ipc.ts と一致すること            |
 
 「起動後の画面制御」は、ホットキーの修飾キーが押されたままならウィンドウを残す規則を指す。
 これはユースケースの責務であり、画面側で判断しない。
@@ -259,7 +281,8 @@ Get-Process -Id $ids | Measure-Object WorkingSet64 -Sum | Select-Object -ExpandP
 | 場面             | 走るもの                                                                       |
 | ---------------- | ------------------------------------------------------------------------------ |
 | push と PR       | `cargo fmt --check`、`cargo clippy -D warnings`、`cargo test`、`npm run build` |
-| 同上（別ジョブ） | `cargo audit`、`npm audit --audit-level=high`                                  |
+| 同上             | 移行ツールにも同じ 3 つを走らせる                                              |
+| 同上（別ジョブ） | `cargo audit`（本体と移行ツール）、`npm audit --audit-level=high`              |
 | `v*` タグ        | テスト、release ビルド、サイズ検査、zip 化、GitHub Release の作成              |
 
 定義は [.github/workflows/](../.github/workflows/) にある。

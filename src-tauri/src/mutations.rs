@@ -72,7 +72,7 @@ fn item_failed(message: &str) -> ItemResult {
     }
 }
 
-fn to_shelf_view(shelf: &Shelf) -> ShelfView {
+pub(crate) fn to_shelf_view(shelf: &Shelf) -> ShelfView {
     ShelfView {
         id: shelf.id().to_string(),
         name: shelf.name().to_string(),
@@ -214,10 +214,16 @@ pub fn reorder_shelves(
 
 // ---------------------------------------------------------------- Item
 
+/// 受け付ける URL かどうか（SPECIFICATION.md 第 9.4 節）。
+/// `http` と `https` の絶対 URL だけを通す。
+fn is_supported_url(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    lower.starts_with("http://") || lower.starts_with("https://")
+}
+
 /// 参照先から種別と既定の表示名を決める（SPECIFICATION.md 第 9.3 節）
 fn classify(target: &str) -> (ItemType, String) {
-    let lower = target.to_ascii_lowercase();
-    if lower.starts_with("http://") || lower.starts_with("https://") {
+    if is_supported_url(target) {
         let host = target
             .split("//")
             .nth(1)
@@ -296,9 +302,7 @@ pub fn add_url(
     use shelfy::usecases::items::{add_item, AddItemResult};
     let shelf = parse_shelf(&shelf_id)?;
 
-    // http と https の絶対 URL 以外は受け付けない（第 9.4 節）
-    let lower = url.to_ascii_lowercase();
-    if !(lower.starts_with("http://") || lower.starts_with("https://")) {
+    if !is_supported_url(&url) {
         return Ok(item_failed(
             "http か https で始まる URL を入力してください。",
         ));
@@ -500,4 +504,122 @@ pub fn import_data(
     }
 
     Ok(SimpleResult::note(message))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    // ---- 種別の判定と既定の表示名（SPECIFICATION.md 第 9.3 節）----
+
+    #[test]
+    fn an_absolute_http_url_becomes_a_url_named_after_its_host() {
+        assert_eq!(
+            classify("https://example.com/a/b?q=1"),
+            (ItemType::Url, "example.com".to_string())
+        );
+        assert_eq!(
+            classify("http://example.com"),
+            (ItemType::Url, "example.com".to_string())
+        );
+    }
+
+    /// 綴りの大小で種別が変わってはいけない。
+    #[test]
+    fn the_scheme_is_matched_without_regard_to_case() {
+        let (kind, _) = classify("HTTPS://Example.com/X");
+        assert_eq!(kind, ItemType::Url);
+    }
+
+    /// ホスト名はそのまま出す。表示名を小文字に潰さない。
+    #[test]
+    fn the_host_keeps_its_original_spelling() {
+        assert_eq!(classify("https://Example.COM/x").1, "Example.COM");
+    }
+
+    #[test]
+    fn a_url_with_a_port_keeps_the_port_in_the_name() {
+        assert_eq!(
+            classify("http://localhost:1420/index.html").1,
+            "localhost:1420"
+        );
+    }
+
+    /// `file:` や `ftp:` は URL として扱わない（第 9.4 節）。
+    #[test]
+    fn other_schemes_are_not_treated_as_urls() {
+        for target in [
+            "ftp://example.com/x",
+            "file:///C:/tmp/a.txt",
+            "mailto:a@b.c",
+        ] {
+            assert_ne!(classify(target).0, ItemType::Url, "{target}");
+        }
+    }
+
+    #[test]
+    fn an_existing_folder_becomes_a_folder() {
+        let dir = TempDir::new().unwrap();
+        let child = dir.path().join("資料");
+        std::fs::create_dir(&child).unwrap();
+
+        let (kind, name) = classify(child.to_str().unwrap());
+
+        assert_eq!(kind, ItemType::Folder);
+        assert_eq!(name, "資料", "表示名はパスの末尾要素");
+    }
+
+    #[test]
+    fn anything_else_becomes_a_file_named_after_the_last_segment() {
+        let dir = TempDir::new().unwrap();
+        let file = dir.path().join("報告書.xlsx");
+        std::fs::write(&file, b"x").unwrap();
+
+        let (kind, name) = classify(file.to_str().unwrap());
+
+        assert_eq!(kind, ItemType::File);
+        assert_eq!(name, "報告書.xlsx");
+    }
+
+    /// 参照先が存在しないことを理由に追加を拒まない（第 3.2 節）。
+    /// 落としたあとに移動されたファイルも、参照としては追加できる。
+    #[test]
+    fn a_path_that_does_not_exist_is_still_classified_as_a_file() {
+        let (kind, name) = classify(r"C:\nowhere\消えた.txt");
+
+        assert_eq!(kind, ItemType::File);
+        assert_eq!(name, "消えた.txt");
+    }
+
+    /// 末尾要素が取れない入力でも、空の表示名を作らない
+    /// （空の表示名はドメインの不変条件で弾かれ、追加が失敗する）。
+    #[test]
+    fn a_target_without_a_last_segment_falls_back_to_the_whole_text() {
+        for target in [r"C:\", "/", ".."] {
+            let (_, name) = classify(target);
+            assert!(!name.trim().is_empty(), "{target:?} の表示名が空になった");
+        }
+    }
+
+    // ---- 受け付ける URL（SPECIFICATION.md 第 9.4 節）----
+
+    #[test]
+    fn only_absolute_http_and_https_urls_are_accepted() {
+        assert!(is_supported_url("http://example.com"));
+        assert!(is_supported_url("https://example.com"));
+        assert!(is_supported_url("HTTPS://EXAMPLE.COM"));
+
+        for rejected in [
+            "example.com",
+            "//example.com",
+            "ftp://example.com",
+            "javascript:alert(1)",
+            r"C:\work\a.txt",
+            "",
+            "   ",
+        ] {
+            assert!(!is_supported_url(rejected), "{rejected:?} は受け付けない");
+        }
+    }
 }

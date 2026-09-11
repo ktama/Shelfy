@@ -25,7 +25,7 @@ jobs:
           node-version: "22"
           cache: npm
 
-      # Rust の版数は src-tauri/rust-toolchain.toml で固定している
+      # Rust の版数は直下の rust-toolchain.toml で固定している
       - name: Show toolchain
         run: rustup show
 

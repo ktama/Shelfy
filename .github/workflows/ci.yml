@@ -24,7 +24,7 @@ jobs:
           node-version: "22"
           cache: npm
 
-      # Rust の版数は src-tauri/rust-toolchain.toml で固定している
+      # Rust の版数は直下の rust-toolchain.toml で固定している
       - name: Show toolchain
         run: rustup show
 
@@ -35,7 +35,8 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+            tools/shelfy-migrate/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock', 'tools/shelfy-migrate/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
@@ -56,6 +57,21 @@ jobs:
         working-directory: src-tauri
         run: cargo test --all-targets
 
+      # --- 移行ツール ---
+
+      # 配布物には含めないが、リリースノートが利用者に案内する経路なので検査する
+      - name: Format (migration tool)
+        working-directory: tools/shelfy-migrate
+        run: cargo fmt --check
+
+      - name: Clippy (migration tool)
+        working-directory: tools/shelfy-migrate
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Test (migration tool)
+        working-directory: tools/shelfy-migrate
+        run: cargo test
+
       # --- フロントエンド ---
 
       # 型検査とビルド。tauri build は release のみで行う（時間がかかるため）
@@ -73,6 +89,12 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: src-tauri
+
+      - name: Audit migration tool dependencies
+        uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: tools/shelfy-migrate
 
       - name: Audit npm dependencies
         run: npm audit --audit-level=high

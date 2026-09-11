@@ -631,8 +631,8 @@ mod tests {
     }
 
     #[test]
-    fn a_file_written_by_the_current_version_can_be_read() {
-        // 現行の C# 版が書き出す形（小数部 7 桁、camelCase）
+    fn a_file_written_by_v1_can_be_read() {
+        // v1.0.0 が書き出す形（小数部 7 桁、camelCase）
         let json = r#"{
           "version": "1.0",
           "exportedAt": "2026-02-20T03:04:05.6789012Z",

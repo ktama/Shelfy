@@ -44,13 +44,14 @@ Clean Architecture の依存方向は維持する。
 外界とのやり取りは `ports` に置いた trait を通す。
 
 この分離を保つ理由は、ドメインとユースケースが UI から独立していれば、テストが仕様の記録として機能するからである。
-実際、全 141 個のテストのうち大半は Tauri も Windows API も起動せずに走る。
+実際、166 個のテストのうち 136 個は、Tauri も Windows API も起動せずに走る。
 表示の枠組みを入れ替えても、この層は書き直さずに済む。
 
 ## 3. リポジトリ構成
 
 ```text
 Shelfy/
+├─ rust-toolchain.toml            ツールチェーンの固定（src-tauri と tools の両方に効く）
 ├─ index.html                    フロントエンドの入口（Vite が読む）
 ├─ src/                          フロントエンド
 │   ├─ main.ts                   App の取り付け
@@ -66,7 +67,7 @@ Shelfy/
 │   │   ├─ lib.rs                ライブラリの入口
 │   │   ├─ domain.rs             Shelf、Item、識別子、種別
 │   │   ├─ ports.rs              trait 定義
-│   │   ├─ usecases/             shelves、items、launch、search、transfer
+│   │   ├─ usecases/             shelves、items、launch、search、transfer、settings
 │   │   ├─ adapters/             store（JSON）、windows（Win32）、existence（キャッシュ）
 │   │   ├─ hotkey.rs             ホットキー文字列の解析
 │   │   ├─ testing.rs            ポートの試験用実装（feature = "testing"）
@@ -79,8 +80,7 @@ Shelfy/
 │   │   └─ state.rs              アプリ状態の保持
 │   ├─ capabilities/default.json 権限の宣言（第 6.0 節）
 │   ├─ tests/                    ファイル越しの結合、性能、移行
-│   ├─ icons/shelfy.ico
-│   ├─ rust-toolchain.toml       ツールチェーンの固定
+│   ├─ icons/                    tauri.conf.json が参照する分と、生成元の source-1024.png
 │   ├─ Cargo.toml
 │   └─ tauri.conf.json
 ├─ tools/shelfy-migrate/         v1.0.0 の SQLite を読む一度きりの道具（配布物に含めない）
@@ -469,11 +469,16 @@ Rust 側で復帰不能な状態に落ちないよう、ユースケースの境
 | ファイル越しの往復     | `tests/usecases_over_files.rs` で実物のストアを使って確かめる |
 | 性能                   | `tests/performance.rs` で 1,000 件の検索応答を測る            |
 | 移行                   | `tests/migration.rs` で移行ツールの出力を取り込む             |
+| IPC の境界             | `commands.rs` で、画面へ渡す形の鍵と種別の綴りを固める        |
 | フロントエンド         | `svelte-check` による型検査のみ。全面的な UI テストは行わない |
 | Windows 連携と体験     | [DEVELOPMENT.md](DEVELOPMENT.md) 第 4 節の手動確認で担保する  |
 
 ホットキー、トレイ、ドラッグアンドドロップ、日本語入力は、OS との対話が本体であり自動化の費用が見合わない。
 手順を決めた手動確認で担保する。
+
+画面へ渡す形をテストで固めるのは、Rust 側で項目名や種別の綴りを変えても、
+TypeScript の型検査では気づけないからである。
+境界の両側が別の言語で書かれている以上、ここは黙って壊れる。
 
 ## 15. 受け入れた前提
 

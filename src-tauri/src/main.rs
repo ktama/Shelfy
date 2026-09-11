@@ -18,7 +18,8 @@ use tauri_plugin_global_shortcut::{Shortcut, ShortcutState};
 
 use shelfy::adapters::store::{StorePaths, DEFAULT_SAVE_DELAY};
 use shelfy::adapters::windows::webview2_version;
-use shelfy::ports::{settings_keys, AppLogger};
+use shelfy::ports::AppLogger;
+use shelfy::usecases::settings::{read_settings, Settings};
 
 use crate::state::AppState;
 
@@ -53,10 +54,12 @@ fn main() {
 
     let app_state = AppState::open(paths);
     let hotkey_spec = app_state.hotkey_spec();
-    let start_minimized = read_start_minimized(&app_state);
+    let settings = read_settings(app_state.store.as_ref());
+    let start_minimized = settings.start_minimized;
+    let (window_width, window_height) = (settings.window_width, settings.window_height);
 
     let shortcut = Shortcut::from_str(&hotkey_spec.to_string_normalized())
-        .unwrap_or_else(|_| Shortcut::from_str(settings_keys::DEFAULT_GLOBAL_HOTKEY).unwrap());
+        .unwrap_or_else(|_| Shortcut::from_str(&Settings::default().global_hotkey).unwrap());
 
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
@@ -147,17 +150,7 @@ fn main() {
             ));
 
             // 保存されている大きさに戻す
-            {
-                use shelfy::ports::SettingsRepository;
-                let store = state.store.as_ref();
-                let width = SettingsRepository::get(store, settings_keys::WINDOW_WIDTH)
-                    .and_then(|v| v.parse::<f64>().ok())
-                    .unwrap_or(settings_keys::DEFAULT_WINDOW_WIDTH);
-                let height = SettingsRepository::get(store, settings_keys::WINDOW_HEIGHT)
-                    .and_then(|v| v.parse::<f64>().ok())
-                    .unwrap_or(settings_keys::DEFAULT_WINDOW_HEIGHT);
-                let _ = window.set_size(tauri::LogicalSize::new(width, height));
-            }
+            let _ = window.set_size(tauri::LogicalSize::new(window_width, window_height));
 
             // ウィンドウは作り切ってから隠しておく。呼び出しでは表示を切り替えるだけにする。
             if !start_minimized {
@@ -174,13 +167,6 @@ fn main() {
             &format!("画面を作れませんでした。\n\n{e}"),
         );
     }
-}
-
-fn read_start_minimized(state: &AppState) -> bool {
-    use shelfy::ports::SettingsRepository;
-    SettingsRepository::get(state.store.as_ref(), settings_keys::START_MINIMIZED)
-        .map(|v| v == "true")
-        .unwrap_or(settings_keys::DEFAULT_START_MINIMIZED)
 }
 
 fn setup_tray(app: &mut tauri::App) -> tauri::Result<()> {

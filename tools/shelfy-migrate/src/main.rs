@@ -23,7 +23,10 @@ const EXCHANGE_VERSION: &str = "1.0";
 
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
-    let source = args.next().map(PathBuf::from).unwrap_or_else(default_source);
+    let source = args
+        .next()
+        .map(PathBuf::from)
+        .unwrap_or_else(default_source);
     let target = args
         .next()
         .map(PathBuf::from)
@@ -141,4 +144,118 @@ fn now_rfc3339() -> String {
             })
         })
         .unwrap_or_else(|_| String::from("1970-01-01T00:00:00Z"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    /// v1.0.0 が作る形の `shelfy.db` を組み立てる
+    /// （スキーマは doc/DATA_MIGRATION.md 第 2 節）。
+    fn build_v1_db(path: &Path) {
+        let c = Connection::open(path).unwrap();
+        c.execute_batch(
+            "CREATE TABLE Shelves (
+                 Id TEXT PRIMARY KEY,
+                 Name TEXT NOT NULL,
+                 ParentId TEXT NULL REFERENCES Shelves(Id) ON DELETE CASCADE,
+                 SortOrder INTEGER NOT NULL DEFAULT 0,
+                 IsPinned INTEGER NOT NULL DEFAULT 0
+             );
+             CREATE TABLE Items (
+                 Id TEXT PRIMARY KEY,
+                 ShelfId TEXT NOT NULL REFERENCES Shelves(Id) ON DELETE CASCADE,
+                 Type INTEGER NOT NULL,
+                 Target TEXT NOT NULL,
+                 DisplayName TEXT NOT NULL,
+                 Memo TEXT NULL,
+                 SortOrder INTEGER NOT NULL DEFAULT 0,
+                 CreatedAt TEXT NOT NULL,
+                 LastAccessedAt TEXT NULL
+             );
+             -- 親を持つ棚、ピン留めされた棚、NULL を含む項目をそれぞれ 1 件ずつ置く
+             INSERT INTO Shelves VALUES ('s-1', '仕事', NULL, 0, 1);
+             INSERT INTO Shelves VALUES ('s-2', '月次', 's-1', 3, 0);
+             INSERT INTO Items VALUES
+                 ('i-1', 's-1', 0, 'C:\\work\\report.xlsx', 'report.xlsx',
+                  '月次', 3, '2026-01-05T12:00:00.0000000Z', '2026-02-19T09:30:00.0000000Z');
+             INSERT INTO Items VALUES
+                 ('i-2', 's-2', 2, 'https://example.com', 'example.com',
+                  NULL, 0, '2026-01-06T12:00:00.0000000Z', NULL);",
+        )
+        .unwrap();
+    }
+
+    fn migrate(dir: &TempDir) -> Value {
+        let source = dir.path().join("shelfy.db");
+        let target = dir.path().join("out.json");
+        build_v1_db(&source);
+
+        let (shelves, items) = run(&source, &target).expect("書き出せること");
+        assert_eq!((shelves, items), (2, 2));
+
+        serde_json::from_str(&std::fs::read_to_string(&target).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn it_writes_the_exchange_format() {
+        let dir = TempDir::new().unwrap();
+        let out = migrate(&dir);
+
+        assert_eq!(out["version"], "1.0");
+        assert!(out["exportedAt"].is_string());
+
+        let work = &out["shelves"][0];
+        assert_eq!(work["id"], "s-1");
+        assert_eq!(work["name"], "仕事");
+        // SQLite の整数が真偽値になる
+        assert_eq!(work["isPinned"], true);
+        // NULL の親は鍵ごと落ちる
+        assert!(work.get("parentId").is_none());
+
+        let monthly = &out["shelves"][1];
+        assert_eq!(monthly["parentId"], "s-1", "階層が保たれる");
+        assert_eq!(monthly["sortOrder"], 3, "並び順が保たれる");
+        assert_eq!(monthly["isPinned"], false);
+
+        let report = &out["items"][0];
+        assert_eq!(report["shelfId"], "s-1");
+        assert_eq!(report["type"], 0);
+        assert_eq!(report["target"], "C:\\work\\report.xlsx");
+        assert_eq!(report["memo"], "月次");
+        // 日時は v1.0.0 が書いた小数部 7 桁のまま渡す
+        assert_eq!(report["createdAt"], "2026-01-05T12:00:00.0000000Z");
+        assert_eq!(report["lastAccessedAt"], "2026-02-19T09:30:00.0000000Z");
+
+        let site = &out["items"][1];
+        assert_eq!(site["type"], 2, "種別が保たれる");
+        // NULL の鍵は落ちる
+        assert!(site.get("memo").is_none());
+        assert!(site.get("lastAccessedAt").is_none());
+    }
+
+    /// 利用者の唯一のデータを預かるため、元のファイルに触れないことを確かめる。
+    #[test]
+    fn it_leaves_the_source_untouched() {
+        let dir = TempDir::new().unwrap();
+        let source = dir.path().join("shelfy.db");
+        build_v1_db(&source);
+
+        let before = std::fs::read(&source).unwrap();
+        run(&source, &dir.path().join("out.json")).unwrap();
+        let after = std::fs::read(&source).unwrap();
+
+        assert_eq!(before, after, "読み取り専用で開くので 1 バイトも変わらない");
+    }
+
+    #[test]
+    fn it_reports_a_missing_source() {
+        let dir = TempDir::new().unwrap();
+        let missing = dir.path().join("nowhere.db");
+
+        let message = run(&missing, &dir.path().join("out.json")).unwrap_err();
+
+        assert!(message.contains("見つかりません"), "{message}");
+    }
 }

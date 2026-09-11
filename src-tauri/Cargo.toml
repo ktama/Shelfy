@@ -2,7 +2,8 @@
 name = "shelfy"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.82"
+# rust-toolchain.toml で固定している版数に合わせる
+rust-version = "1.96.0"
 description = "棚でファイル、フォルダ、URL の参照を整理する常駐型ランチャー"
 license = "MIT"
 

@@ -3,5 +3,6 @@
 pub mod items;
 pub mod launch;
 pub mod search;
+pub mod settings;
 pub mod shelves;
 pub mod transfer;
