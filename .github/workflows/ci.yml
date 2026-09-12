@@ -84,17 +84,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Audit Rust dependencies
-        uses: rustsec/audit-check@v2
+      # cargo-audit は CLI で呼ぶ。
+      # rustsec/audit-check はチェック実行を作るため checks:write が要り、
+      # fork からの PR では権限が下がって必ず失敗する。結果はログで足りる。
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          working-directory: src-tauri
+          tool: cargo-audit
+
+      # 脆弱性があれば失敗する。unmaintained と unsound の警告は落とさずに出すだけにする。
+      - name: Audit Rust dependencies
+        run: cargo audit --file src-tauri/Cargo.lock
 
       - name: Audit migration tool dependencies
-        uses: rustsec/audit-check@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          working-directory: tools/shelfy-migrate
+        run: cargo audit --file tools/shelfy-migrate/Cargo.lock
 
       - name: Audit npm dependencies
         run: npm audit --audit-level=high
