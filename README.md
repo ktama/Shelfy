@@ -1,6 +1,8 @@
-# Shelfy
+# ![Shelfy](doc/assets/header-light.svg#gh-light-mode-only)![Shelfy](doc/assets/header-dark.svg#gh-dark-mode-only)
 
 **Shelfy** は「棚（Shelf）」という概念でファイル・フォルダ・URL の参照を整理し、グローバルホットキーで即呼び出して起動できる **軽量ランチャー** です。
+
+![Shelfy のメイン画面。左に棚の一覧、右に選んだ棚の項目が並ぶ](doc/assets/screenshot-dark.png)
 
 ## ✨ 特徴
 
@@ -25,7 +27,7 @@ Shelfy は、軽量化と高速化のために Rust と Tauri v2 で作り直し
 | 版     | 構成                   | 単一 exe     | 起動   | ホットキー→表示 |
 | ------ | ---------------------- | ------------ | ------ | --------------- |
 | v1.0.0 | C# / WPF / SQLite      | 174 MiB      | 未計測 | 未計測          |
-| 現在   | Rust / Tauri v2 / JSON | **3.46 MiB** | 310 ms | **1.4 ms**      |
+| 現在   | Rust / Tauri v2 / JSON | **3.48 MiB** | 310 ms | **1.4 ms**      |
 
 配布物は **50 分の 1** になりました。v1.0.0 の 174 MiB のうち約 165 MiB は .NET ランタイムと WPF 本体で、自作コードは 300 KiB 弱でした。描画を Windows に元からある WebView2 へ任せることで、実行ファイルには自分のコードだけを載せています。
 
@@ -98,7 +100,7 @@ npm run tauri dev
 # 実行ファイルを作る
 npm run tauri build -- --no-bundle
 
-# バックエンドのテスト（166 件）
+# バックエンドのテスト（169 件）
 cd src-tauri && cargo test
 ```
 
@@ -112,7 +114,7 @@ cd src-tauri && cargo test
 
 1. **起動** - アプリはシステムトレイに常駐します
 2. **呼び出し** - `Ctrl+Shift+Space` でウィンドウを表示/非表示
-3. **Shelf 作成** - 左上の「＋棚」または `Ctrl+N`
+3. **Shelf 作成** - 棚の一覧の見出しにある「＋」または `Ctrl+N`（子の棚は、棚の右クリックメニューから）
 4. **アイテム追加** - ファイル・フォルダを Shelf 選択中のウィンドウにドラッグ＆ドロップ
 5. **アイテム起動** - ダブルクリックまたは `Enter` キー
 6. **閉じる** - `Escape` キーでウィンドウを非表示（トレイに常駐）
@@ -135,9 +137,9 @@ cd src-tauri && cargo test
 
 ### データ管理
 
-- **エクスポート** - 左下の「書出」で全データを JSON ファイルに保存
-- **インポート** - 左下の「取込」で JSON ファイルからデータを復元（全置換 or マージ）
-- **設定** - 左下の「設定」でホットキー、起動時最小化、ウィンドウサイズなどを変更
+- **エクスポート** - 右上の「⋯」→「書き出す」で全データを JSON ファイルに保存
+- **インポート** - 右上の「⋯」→「取り込む」で JSON ファイルからデータを復元（「足す」か「置き換える」を選ぶ）
+- **設定** - 右上の「⋯」→「設定」でホットキー、起動時最小化、ウィンドウサイズなどを変更
 - **保存先** - `%LOCALAPPDATA%\Shelfy\shelfy.json`（環境変数 `SHELFY_DATA_DIR` で差し替え可）
 
 ### キーボードショートカット
@@ -160,6 +162,7 @@ cd src-tauri && cargo test
 | ------------------------------------------ | ------------------------------------------------- |
 | [SPECIFICATION.md](doc/SPECIFICATION.md)   | 振る舞いの規則。ドメイン、検索、画面、非機能要件  |
 | [ARCHITECTURE.md](doc/ARCHITECTURE.md)     | 実現の仕方。層、IPC、永続化、Windows 連携、ビルド |
+| [DESIGN.md](doc/DESIGN.md)                 | 見た目の決まり。色、文字、寸法、状態、アイコン    |
 | [DATA_MIGRATION.md](doc/DATA_MIGRATION.md) | 保存形式、交換形式、v1.0.0 からの移行             |
 | [DEVELOPMENT.md](doc/DEVELOPMENT.md)       | 環境、テスト、手動確認、計測、CI                  |
 

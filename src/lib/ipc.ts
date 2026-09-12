@@ -38,6 +38,8 @@ export type StartupInfo = {
   storage: "fresh" | "loaded" | "recovered" | "empty" | "readOnly";
   notice: string | null;
   readOnly: boolean;
+  /** Mica を適用できたか。できていれば画面の背景を透かす。 */
+  mica: boolean;
   settings: SettingsView;
 };
 

@@ -1,6 +1,7 @@
 // Segoe Fluent Icons のグリフ。
 // Windows 11 に標準搭載されたフォントを使うため、アイコンを同梱しない。
-// 見た目の方針は doc/ARCHITECTURE.md 第 5.2 節にある。
+// 私用領域の文字は目で見分けられないので、コードポイントで書く。
+// 大きさと色の決まりは doc/DESIGN.md 第 10 節にある。
 
 import type { ItemKind } from "./ipc";
 
@@ -14,6 +15,7 @@ export const ICON = {
   missing: "", // Warning
   search: "", // Search
   minimize: "", // ChromeMinimize
+  more: "", // More
   chevronRight: "",
   chevronDown: "",
   add: "",

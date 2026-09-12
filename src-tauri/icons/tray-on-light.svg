@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" shape-rendering="crispEdges">
+  <!-- 明るいタスクバー用のトレイアイコン。形は source-16.svg と同じで、単色にしている。 -->
+  <g fill="#1D1A17">
+    <rect x="1" y="13" width="14" height="2"/>
+    <rect x="2" y="2" width="3" height="10"/>
+    <rect x="6" y="5" width="3" height="7"/>
+    <polygon points="11.5,12 9.9,4.8 12.63,4.19 14.23,11.39" shape-rendering="geometricPrecision"/>
+  </g>
+</svg>

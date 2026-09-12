@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" shape-rendering="crispEdges">
+  <!-- 16px 用に画素へ合わせた版。帯を省き、本と棚板の間に 1px の隙間を空ける。 -->
+  <rect x="1" y="13" width="14" height="2" fill="#574336"/>
+  <rect x="2" y="2" width="3" height="10" fill="#D37814"/>
+  <rect x="6" y="5" width="3" height="7" fill="#F2B036"/>
+  <polygon points="11.5,12 9.9,4.8 12.63,4.19 14.23,11.39" fill="#F5DC98" shape-rendering="geometricPrecision"/>
+</svg>

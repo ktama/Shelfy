@@ -6,12 +6,11 @@ mod existence_check;
 mod mutations;
 mod settings;
 mod state;
+mod tray;
 
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
-use tauri::menu::{Menu, MenuItem};
-use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
 use tauri::window::{Effect, EffectsBuilder};
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_global_shortcut::{Shortcut, ShortcutState};
@@ -21,7 +20,7 @@ use shelfy::adapters::windows::webview2_version;
 use shelfy::ports::AppLogger;
 use shelfy::usecases::settings::{read_settings, Settings};
 
-use crate::state::AppState;
+use crate::state::{AppState, WindowEffects};
 
 /// 未保存の変更を書き出すか確かめる間隔
 const SAVE_TICK: Duration = Duration::from_millis(250);
@@ -114,8 +113,10 @@ fn main() {
             let mica = window
                 .set_effects(EffectsBuilder::new().effect(Effect::Mica).build())
                 .is_ok();
+            // 適用できたかを画面へ伝える。画面はこれを見て背景を透かす（第 5.3 節）。
+            app.manage(WindowEffects { mica });
 
-            setup_tray(app)?;
+            tray::setup(app)?;
             register_hotkey(app, &shortcut);
 
             // 閉じる操作は終了ではなく非表示にする
@@ -167,40 +168,6 @@ fn main() {
             &format!("画面を作れませんでした。\n\n{e}"),
         );
     }
-}
-
-fn setup_tray(app: &mut tauri::App) -> tauri::Result<()> {
-    let show_item = MenuItem::with_id(app, "show", "Shelfy を表示", true, None::<&str>)?;
-    let quit_item = MenuItem::with_id(app, "quit", "終了", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
-
-    TrayIconBuilder::with_id("main")
-        .icon(app.default_window_icon().unwrap().clone())
-        .tooltip("Shelfy")
-        .menu(&menu)
-        .show_menu_on_left_click(false)
-        .on_menu_event(|app, event| match event.id.as_ref() {
-            "show" => show_main_window(app),
-            "quit" => {
-                if let Some(state) = app.try_state::<AppState>() {
-                    state.flush();
-                    state.logger.info("終了します");
-                }
-                app.exit(0);
-            }
-            _ => {}
-        })
-        .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::DoubleClick {
-                button: MouseButton::Left,
-                ..
-            } = event
-            {
-                show_main_window(tray.app_handle());
-            }
-        })
-        .build(app)?;
-    Ok(())
 }
 
 fn register_hotkey(app: &tauri::App, shortcut: &Shortcut) {

@@ -7,9 +7,11 @@
   import { ipc, onExistenceUpdated, onHotkeyUnavailable, onWindowShown } from "./ipc";
   import type { ItemView, SettingsView, ShelfView } from "./ipc";
   import { ICON } from "./icons";
+  import appIcon from "../../src-tauri/icons/source-16.svg";
   import ShelfTree from "./components/ShelfTree.svelte";
   import type { ShelfNode } from "./components/ShelfTree.svelte";
   import ItemList from "./components/ItemList.svelte";
+  import EmptyState from "./components/EmptyState.svelte";
   import Dialog from "./components/Dialog.svelte";
   import ContextMenu from "./components/ContextMenu.svelte";
   import type { MenuEntry } from "./components/ContextMenu.svelte";
@@ -26,8 +28,12 @@
   let query = $state("");
   let status = $state("");
   let readOnly = $state(false);
+  /** 最初の読み込みが済んだか。済むまでは空状態を出さない。 */
+  let loaded = $state(false);
   /** 参照先が見つからない項目。背景での確認が届くたびに更新される。 */
   let missing = $state(new Set<string>());
+  /** エクスプローラーからドラッグ中の件数。ドラッグしていなければ null。 */
+  let dropping = $state<number | null>(null);
 
   /** 一覧を出したあとに、参照先の確認を背景で頼む（第 7.5 節） */
   function checkExistenceOf(list: ItemView[]) {
@@ -37,6 +43,7 @@
   let settings = $state<SettingsView | null>(null);
 
   let searchBox: HTMLInputElement | null = $state(null);
+  let moreButton: HTMLButtonElement | null = $state(null);
   let searchTimer: number | undefined;
 
   const tree: ShelfNode[] = $derived(buildTree(shelves));
@@ -49,8 +56,10 @@
         ? "最近使ったもの"
         : mode === "missing"
           ? "見つからない項目"
-          : (selectedShelf?.name ?? "項目"),
+          : (selectedShelf?.name ?? ""),
   );
+  /** 一覧の見出しを出すか。棚が 1 つも無い通常の表示では出さない。 */
+  const hasHeading = $derived(mode !== "normal" || selectedShelf !== null);
 
   // ------------------------------------------------------------ ダイアログ
 
@@ -80,6 +89,7 @@
   let confirmBox = $state({ open: false, title: "", body: "", onyes: () => {} });
   let picker = $state({ open: false, title: "", allowRoot: false, onpick: (_: string | null) => {} });
   let pickerChoice = $state<string | null>(null);
+  let importBox = $state({ open: false, path: "", replaceAll: false });
   let settingsBox = $state({ open: false });
   let settingsDraft = $state<SettingsView>({
     globalHotkey: "Ctrl+Shift+Space",
@@ -89,6 +99,8 @@
     recentItemsCount: 20,
   });
   let menu = $state<{ x: number; y: number; entries: MenuEntry[] } | null>(null);
+  /** 「⋯」から開いたメニューか。同じボタンをもう一度押したら閉じるために使う。 */
+  let menuFromMore = $state(false);
 
   function ask(options: Partial<Prompt> & { title: string; ondone: (value: string) => void }) {
     prompt = { ...closedPrompt, ...options, open: true };
@@ -101,6 +113,11 @@
   function pickShelf(title: string, allowRoot: boolean, onpick: (id: string | null) => void) {
     pickerChoice = allowRoot ? null : (shelves[0]?.id ?? null);
     picker = { open: true, title, allowRoot, onpick };
+  }
+
+  function closeMenu() {
+    menu = null;
+    menuFromMore = false;
   }
 
   // ------------------------------------------------------------ 読み込み
@@ -126,15 +143,16 @@
     }
   }
 
+  // 一覧を読み込む関数はステータスに触らない。
+  // 件数は見出しに、空であることは空状態に出すので、直前の操作の結果を上書きしないようにする。
+
   async function loadCurrentShelf() {
     if (!selectedShelfId) {
       items = [];
-      status = "棚がまだありません";
       return;
     }
     items = await ipc.loadItems(selectedShelfId);
     if (!items.some((i) => i.id === selectedItemId)) selectedItemId = null;
-    status = items.length === 0 ? "この棚は空です" : `${items.length} 件`;
     checkExistenceOf(items);
   }
 
@@ -164,7 +182,6 @@
     }
     mode = "search";
     items = await ipc.search(query);
-    status = `${items.length} 件が見つかりました`;
     checkExistenceOf(items);
   }
 
@@ -178,7 +195,6 @@
     mode = "recent";
     query = "";
     items = await ipc.recentItems();
-    status = items.length === 0 ? "まだ起動した項目がありません" : `${items.length} 件`;
     checkExistenceOf(items);
   }
 
@@ -188,8 +204,6 @@
     items = await ipc.missingItems();
     // この一覧はすべて欠損している。背景の確認が届けば、そちらで上書きされる。
     missing = new Set(items.map((i) => i.id));
-    status =
-      items.length === 0 ? "見つからない項目はありません" : `${items.length} 件が見つかりません`;
   }
 
   // ------------------------------------------------------------ 起動
@@ -415,6 +429,7 @@
     status = result.message ?? "書き出しました";
   }
 
+  /** 取り込むファイルを選び、取り込み方をダイアログで選ばせる（doc/DESIGN.md 第 9 節） */
   async function importData() {
     const path = await openFile({
       title: "Shelfy のデータを取り込む",
@@ -422,21 +437,9 @@
       filters: [{ name: "JSON", extensions: ["json"] }],
     });
     if (typeof path !== "string") return;
-
-    confirmThen(
-      "取り込み方を選んでください",
-      "「置き換える」を選ぶと、いまのデータをすべて消してから取り込みます。キャンセルすると、いまのデータに足します。",
-      async () => await runImport(path, true),
-    );
-    // 「キャンセル」でも取り込みたいので、確認の否定側に足す動作を割り当てる
-    confirmBox = {
-      ...confirmBox,
-      onyes: async () => await runImport(path, true),
-    };
-    importFallback = () => runImport(path, false);
+    // 既定は、いまのデータを消さない「足す」
+    importBox = { open: true, path, replaceAll: false };
   }
-
-  let importFallback: (() => void) | null = null;
 
   async function runImport(path: string, replaceAll: boolean) {
     const result = await ipc.importData(path, replaceAll);
@@ -446,6 +449,10 @@
     mode = "normal";
     query = "";
     await loadCurrentShelf();
+  }
+
+  function fileNameOf(path: string): string {
+    return path.split(/[\\/]/).pop() ?? path;
   }
 
   function openSettings() {
@@ -465,10 +472,33 @@
 
   // ------------------------------------------------------------ メニュー
 
+  /** タイトルバーの「⋯」。取り込み、書き出し、設定を入れる（doc/DESIGN.md 第 7 節）。 */
+  function toggleMoreMenu() {
+    if (menuFromMore) {
+      closeMenu();
+      return;
+    }
+    if (!moreButton) return;
+    const rect = moreButton.getBoundingClientRect();
+    menu = {
+      // メニューの右端をボタンの右端に揃える。はみ出す分はメニューの側で寄せる。
+      x: rect.right - 200,
+      y: rect.bottom + 2,
+      entries: [
+        { kind: "action", label: "取り込む…", icon: ICON.import, run: importData },
+        { kind: "action", label: "書き出す…", icon: ICON.export, run: exportData },
+        { kind: "separator" },
+        { kind: "action", label: "設定", icon: ICON.settings, run: openSettings },
+      ],
+    };
+    menuFromMore = true;
+  }
+
   function shelfMenu(event: MouseEvent, shelf: ShelfView) {
     event.preventDefault();
     const siblings = shelves.filter((s) => s.parentId === shelf.parentId);
     const index = siblings.findIndex((s) => s.id === shelf.id);
+    menuFromMore = false;
     menu = {
       x: event.clientX,
       y: event.clientY,
@@ -487,7 +517,7 @@
           icon: ICON.pinned,
           run: () => togglePin(shelf),
         },
-        { kind: "action", label: "移動...", icon: ICON.folder, run: () => moveShelf(shelf) },
+        { kind: "action", label: "移動…", icon: ICON.folder, run: () => moveShelf(shelf) },
         {
           kind: "action",
           label: "上へ",
@@ -513,6 +543,7 @@
     event.preventDefault();
     selectedItemId = item.id;
     const index = items.findIndex((i) => i.id === item.id);
+    menuFromMore = false;
     menu = {
       x: event.clientX,
       y: event.clientY,
@@ -528,7 +559,7 @@
         { kind: "separator" },
         { kind: "action", label: "名前を変える", icon: ICON.edit, run: () => renameItem(item) },
         { kind: "action", label: "メモ", icon: ICON.memo, run: () => editMemo(item) },
-        { kind: "action", label: "別の棚へ移動...", icon: ICON.moveTo, run: () => moveItem(item) },
+        { kind: "action", label: "別の棚へ移動…", icon: ICON.moveTo, run: () => moveItem(item) },
         {
           kind: "action",
           label: "上へ",
@@ -559,7 +590,12 @@
   }
 
   const dialogOpen = $derived(
-    prompt.open || confirmBox.open || picker.open || settingsBox.open || menu !== null,
+    prompt.open ||
+      confirmBox.open ||
+      picker.open ||
+      importBox.open ||
+      settingsBox.open ||
+      menu !== null,
   );
 
   async function onKeydown(event: KeyboardEvent) {
@@ -611,32 +647,8 @@
   // ------------------------------------------------------------ 起動時
 
   onMount(async () => {
-    const info = await ipc.startupInfo();
-    readOnly = info.readOnly;
-    settings = info.settings;
-    if (info.notice) status = info.notice;
-
-    await reloadShelves();
-    await loadCurrentShelf();
-    if (info.notice) status = info.notice;
-
-    // エクスプローラからのドロップ。
-    // Tauri の仕組みで受けるため、画面の中では HTML5 のドラッグを使わない。
-    await getCurrentWebview().onDragDropEvent(async (event) => {
-      if (event.payload.type !== "drop") return;
-      if (!selectedShelfId) {
-        status = "先に棚を選んでください。";
-        return;
-      }
-      const paths = event.payload.paths;
-      const result = await ipc.addItems(selectedShelfId, paths);
-      await refreshView();
-      status =
-        result.skipped.length === 0
-          ? `${result.added.length} 件を追加しました`
-          : `${result.added.length} 件を追加、${result.skipped.length} 件は追加しませんでした（${result.skipped[0]}）`;
-    });
-
+    // 存在確認の結果は、最初の一覧を読み込むより先に受け取れるようにしておく。
+    // ローカルの確認はすぐ終わるので、後から購読すると最初の結果を取りこぼす。
     await onExistenceUpdated((entries) => {
       const next = new Set(missing);
       for (const entry of entries) {
@@ -644,6 +656,44 @@
         else next.add(entry.id);
       }
       missing = next;
+    });
+
+    const info = await ipc.startupInfo();
+    readOnly = info.readOnly;
+    settings = info.settings;
+    // Mica が効いた環境でだけ背景を透かす。効いていない環境で透かすと下が透けて読めない。
+    document.documentElement.classList.toggle("mica", info.mica);
+
+    await reloadShelves();
+    await loadCurrentShelf();
+    loaded = true;
+    if (info.notice) status = info.notice;
+
+    // エクスプローラからのドロップ。
+    // Tauri の仕組みで受けるため、画面の中では HTML5 のドラッグを使わない。
+    await getCurrentWebview().onDragDropEvent(async (event) => {
+      const payload = event.payload;
+      if (payload.type === "enter") {
+        dropping = payload.paths.length > 0 ? payload.paths.length : null;
+        return;
+      }
+      if (payload.type === "leave") {
+        dropping = null;
+        return;
+      }
+      if (payload.type !== "drop") return;
+
+      dropping = null;
+      if (!selectedShelfId) {
+        status = "先に棚を選んでください。";
+        return;
+      }
+      const result = await ipc.addItems(selectedShelfId, payload.paths);
+      await refreshView();
+      status =
+        result.skipped.length === 0
+          ? `${result.added.length} 件を追加しました`
+          : `${result.added.length} 件を追加、${result.skipped.length} 件は追加しませんでした（${result.skipped[0]}）`;
     });
 
     await onWindowShown(() => searchBox?.focus());
@@ -657,98 +707,166 @@
 
 <div class="app">
   <header class="titlebar" data-tauri-drag-region>
-    <span class="brand" data-tauri-drag-region>Shelfy</span>
+    <span class="brand" data-tauri-drag-region>
+      <img src={appIcon} width="16" height="16" alt="" data-tauri-drag-region />Shelfy
+    </span>
     <label class="search">
-      <span class="icon">{ICON.search}</span>
+      <span class="icon" aria-hidden="true">{ICON.search}</span>
       <input
         bind:this={searchBox}
         bind:value={query}
         oninput={onQueryInput}
         type="text"
-        placeholder="検索（box: type: in: で絞り込み）"
+        aria-label="検索"
+        placeholder="名前、パス、メモを検索（box: type: in:）"
         autocomplete="off"
         spellcheck="false"
       />
     </label>
-    <button class="winbtn icon" title="非表示 (Esc)" onclick={() => getCurrentWindow().hide()}>
-      {ICON.minimize}
-    </button>
+    <span class="winbtns">
+      <button
+        bind:this={moreButton}
+        class="winbtn"
+        class:open={menuFromMore}
+        title="メニュー"
+        aria-haspopup="menu"
+        aria-expanded={menuFromMore}
+        onpointerdown={(e) => e.stopPropagation()}
+        onclick={toggleMoreMenu}
+      >
+        <span class="icon">{ICON.more}</span>
+      </button>
+      <button class="winbtn minimize" title="隠す (Esc)" onclick={() => getCurrentWindow().hide()}>
+        <span class="icon">{ICON.minimize}</span>
+      </button>
+    </span>
   </header>
 
   <main class="body">
-    <nav class="pane tree">
-      <div class="treetools">
-        <button title="棚を作る (Ctrl+N)" onclick={() => newShelf(null)}>
-          <span class="icon">{ICON.add}</span>棚
-        </button>
-        <button
-          title="選んだ棚の中に作る"
-          disabled={!selectedShelf}
-          onclick={() => selectedShelf && newShelf(selectedShelf)}
-        >
-          <span class="icon">{ICON.folderAdd}</span>子
+    <nav class="pane tree" aria-label="棚">
+      <div class="panehead">
+        <span>棚</span>
+        <button class="iconbtn" title="棚を作る (Ctrl+N)" onclick={() => newShelf(null)}>
+          <span class="icon">{ICON.add}</span>
         </button>
       </div>
       <div class="scroll" oncontextmenu={(e) => e.preventDefault()} role="presentation">
         <ShelfTree
           nodes={tree}
-          selectedId={selectedShelfId}
+          selectedId={mode === "normal" ? selectedShelfId : null}
           onselect={showShelf}
           oncontext={shelfMenu}
         />
       </div>
       <div class="views">
-        <button class:active={mode === "recent"} onclick={showRecent} title="最近使ったもの">
-          <span class="icon">{ICON.recent}</span>最近
+        <button
+          class="navrow"
+          class:selected={mode === "recent"}
+          aria-current={mode === "recent" ? "true" : undefined}
+          onclick={showRecent}
+        >
+          <span class="icon">{ICON.recent}</span><span class="label">最近使ったもの</span>
         </button>
-        <button class:active={mode === "missing"} onclick={showMissing} title="見つからない項目">
-          <span class="icon">{ICON.missing}</span>欠損
-        </button>
-      </div>
-      <div class="views">
-        <button onclick={addUrl} title="URL を追加する">
-          <span class="icon">{ICON.url}</span>URL
-        </button>
-        <button onclick={openSettings} title="設定">
-          <span class="icon">{ICON.settings}</span>設定
-        </button>
-      </div>
-      <div class="views">
-        <button onclick={exportData} title="データを書き出す">
-          <span class="icon">{ICON.export}</span>書出
-        </button>
-        <button onclick={importData} title="データを取り込む">
-          <span class="icon">{ICON.import}</span>取込
+        <button
+          class="navrow"
+          class:selected={mode === "missing"}
+          aria-current={mode === "missing" ? "true" : undefined}
+          onclick={showMissing}
+        >
+          <span class="icon">{ICON.missing}</span><span class="label">見つからない項目</span>
         </button>
       </div>
     </nav>
 
     <section class="pane content">
-      <div class="listhead">
-        <span class="title">{title}</span>
-        {#if readOnly}
-          <span class="badge">読み取り専用</span>
-        {/if}
-      </div>
-      <ItemList
-        {items}
-        selectedId={selectedItemId}
-        showShelfName={mode !== "normal"}
-        {missing}
-        reorderable={mode === "normal"}
-        onselect={(item) => (selectedItemId = item.id)}
-        onlaunch={launch}
-        oncontext={itemMenu}
-        onreorder={reorderByDrag}
-      />
+      {#if hasHeading}
+        <div class="listhead">
+          <span class="title">{title}</span>
+          {#if loaded}<span class="count">{items.length} 件</span>{/if}
+          {#if readOnly}
+            <span class="badge">読み取り専用</span>
+          {/if}
+          <span class="grow"></span>
+          {#if mode === "normal" && selectedShelf}
+            <button class="btn" onclick={addUrl}>
+              <span class="icon">{ICON.add}</span>URL を追加
+            </button>
+          {/if}
+        </div>
+      {/if}
+
+      {#if items.length > 0}
+        <ItemList
+          {items}
+          selectedId={selectedItemId}
+          showShelfName={mode !== "normal"}
+          {missing}
+          reorderable={mode === "normal"}
+          onselect={(item) => (selectedItemId = item.id)}
+          onlaunch={launch}
+          oncontext={itemMenu}
+          onreorder={reorderByDrag}
+        />
+      {:else if !loaded}
+        <div class="placeholder"></div>
+      {:else if mode === "normal" && !selectedShelf}
+        <EmptyState
+          icon={ICON.shelf}
+          title="棚がまだありません"
+          body="棚を作ると、ファイルやフォルダや URL を置けます。"
+        >
+          <span class="acts">
+            <button class="btn primary" onclick={() => newShelf(null)}>棚を作る</button>
+            <kbd>Ctrl+N</kbd>
+          </span>
+        </EmptyState>
+      {:else if mode === "normal"}
+        <EmptyState
+          icon={ICON.import}
+          title="この棚は空です"
+          body="エクスプローラーからファイルやフォルダをドロップすると、ここに並びます。"
+        />
+      {:else if mode === "search"}
+        <EmptyState
+          title={`「${query.trim()}」に一致する項目はありません`}
+          body="名前、パス、メモ、棚の名前を探しました。先頭に次の書き方を付けると、範囲を変えられます。"
+        >
+          <dl class="prefixes">
+            <dt>box:</dt>
+            <dd>棚の名前で絞り込む</dd>
+            <dt>type:</dt>
+            <dd>file、folder、url のどれか</dd>
+            <dt>in:</dt>
+            <dd>その棚の中だけを探す</dd>
+          </dl>
+        </EmptyState>
+      {:else if mode === "recent"}
+        <EmptyState title="まだ開いた項目がありません" />
+      {:else}
+        <EmptyState title="見つからない項目はありません" />
+      {/if}
+
+      {#if dropping !== null}
+        <!-- ドラッグ中の案内。ポインタは下の一覧に通す。 -->
+        <div class="dropzone" aria-hidden="true">
+          <span class="icon">{ICON.add}</span>
+          {#if selectedShelf}
+            <span class="say">「{selectedShelf.name}」に {dropping} 件を追加します</span>
+            <span class="why">離すと追加されます。同じ参照がすでにあるものは飛ばします。</span>
+          {:else}
+            <span class="say">追加先の棚がありません</span>
+            <span class="why">先に棚を作ってください。</span>
+          {/if}
+        </div>
+      {/if}
     </section>
   </main>
 
-  <footer class="status">{status}</footer>
+  <footer class="status" role="status">{status}</footer>
 </div>
 
 {#if menu}
-  <ContextMenu x={menu.x} y={menu.y} entries={menu.entries} onclose={() => (menu = null)} />
+  <ContextMenu x={menu.x} y={menu.y} entries={menu.entries} onclose={closeMenu} />
 {/if}
 
 <Dialog
@@ -781,17 +899,11 @@
   onconfirm={() => {
     const yes = confirmBox.onyes;
     confirmBox = { ...confirmBox, open: false };
-    importFallback = null;
     yes();
   }}
-  oncancel={() => {
-    const fallback = importFallback;
-    confirmBox = { ...confirmBox, open: false };
-    importFallback = null;
-    if (fallback) fallback();
-  }}
+  oncancel={() => (confirmBox = { ...confirmBox, open: false })}
 >
-  <p class="body">{confirmBox.body}</p>
+  <p class="message">{confirmBox.body}</p>
 </Dialog>
 
 <Dialog
@@ -821,6 +933,40 @@
       </label>
     {/each}
   </div>
+</Dialog>
+
+<!-- 取り込み方はここで選ぶ。やめる、Esc、背景のクリックでは何も取り込まない。 -->
+<Dialog
+  open={importBox.open}
+  title="データを取り込む"
+  confirmLabel="取り込む"
+  cancelLabel="やめる"
+  onconfirm={() => {
+    const { path, replaceAll } = importBox;
+    importBox = { ...importBox, open: false };
+    void runImport(path, replaceAll);
+  }}
+  oncancel={() => (importBox = { ...importBox, open: false })}
+>
+  <div class="file" title={importBox.path}>
+    <span class="icon">{ICON.file}</span>{fileNameOf(importBox.path)}
+  </div>
+  <fieldset class="modes">
+    <legend>取り込み方</legend>
+    <label class="mode">
+      <input type="radio" name="import-mode" bind:group={importBox.replaceAll} value={false} />
+      <span class="what">足す</span>
+      <span class="how">いまの棚と項目を残し、まだないものだけを加えます。</span>
+    </label>
+    <label class="mode">
+      <input type="radio" name="import-mode" bind:group={importBox.replaceAll} value={true} />
+      <span class="what">置き換える</span>
+      <span class="how danger">
+        <span class="icon">{ICON.missing}</span>
+        <span>いまの棚と項目をすべて消してから取り込みます。元に戻せません。</span>
+      </span>
+    </label>
+  </fieldset>
 </Dialog>
 
 <Dialog
@@ -861,37 +1007,51 @@
     height: 100%;
   }
 
+  /* ------------------------------------------------------------ タイトルバー */
+
   .titlebar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    height: 44px;
-    padding-left: 14px;
+    gap: var(--space-3);
+    height: var(--titlebar);
+    padding-left: var(--space-3);
     flex: 0 0 auto;
   }
 
+  /* 検索欄の左端を、一覧のペインの左端に揃える */
   .brand {
+    flex: 0 0 auto;
+    width: calc(var(--pane-width) + var(--space-2) * 2 - var(--space-3) * 2);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     font-size: 12px;
     font-weight: 600;
     color: var(--fg-sec);
   }
 
+  .brand img {
+    display: block;
+  }
+
   .search {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex: 1 1 auto;
+    min-width: 0;
     max-width: 420px;
-    height: 28px;
+    height: var(--control);
     padding: 0 10px;
     border: 1px solid var(--stroke);
-    border-bottom-color: var(--fg-sec);
     border-radius: var(--radius-sm);
     background: var(--layer-solid);
+    box-shadow: inset 0 -1px 0 var(--stroke-strong);
   }
 
+  /* 枠の太さは変えず、下辺の線で示す */
   .search:focus-within {
-    border-bottom: 2px solid var(--accent);
+    box-shadow: inset 0 -2px 0 var(--accent-line);
   }
 
   .search .icon {
@@ -907,32 +1067,65 @@
     outline: none;
   }
 
-  .winbtn {
+  .search input::placeholder {
+    color: var(--fg-sec);
+  }
+
+  .winbtns {
     margin-left: auto;
+    display: flex;
+  }
+
+  .winbtn {
+    width: 44px;
+    height: var(--titlebar);
+    display: grid;
+    place-items: center;
+  }
+
+  .winbtn .icon {
+    font-size: var(--icon-control);
+  }
+
+  .winbtn.minimize {
     width: 46px;
-    height: 44px;
+  }
+
+  .winbtn.minimize .icon {
     font-size: 10px;
   }
 
-  .winbtn:hover {
+  .winbtn:hover,
+  .winbtn.open {
     background: var(--hover);
   }
+
+  .winbtn:active {
+    background: var(--press);
+  }
+
+  .winbtn:focus-visible {
+    outline-offset: -2px;
+  }
+
+  /* ------------------------------------------------------------ ペイン */
 
   .body {
     flex: 1 1 auto;
     display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 8px;
-    padding: 0 8px 8px;
+    grid-template-columns: var(--pane-width) minmax(0, 1fr);
+    gap: var(--space-2);
+    padding: 0 var(--space-2) var(--space-2);
     min-height: 0;
   }
 
   .pane {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
     background: var(--layer);
     border: 1px solid var(--stroke);
     border-radius: var(--radius-md);
-    min-height: 0;
-    overflow: hidden;
   }
 
   .tree {
@@ -940,59 +1133,38 @@
     flex-direction: column;
   }
 
-  .treetools {
+  .panehead {
+    flex: 0 0 auto;
+    height: var(--titlebar);
     display: flex;
-    gap: 4px;
-    padding: 6px 6px 0;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6px 0 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fg-sec);
+  }
+
+  .panehead .iconbtn {
+    color: var(--fg);
   }
 
   .tree .scroll {
     flex: 1 1 auto;
     overflow-y: auto;
-    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 6px 6px;
   }
 
   .views {
     flex: 0 0 auto;
     display: flex;
-    gap: 4px;
-    padding: 6px 6px 0;
-  }
-
-  .views:last-of-type {
-    padding-bottom: 6px;
-  }
-
-  .treetools button,
-  .views button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    flex: 1 1 0;
-    height: 28px;
-    padding: 0 8px;
-    border-radius: var(--radius-sm);
-    font-size: 12px;
-  }
-
-  .treetools button:hover,
-  .views button:hover {
-    background: var(--hover);
-  }
-
-  .treetools button:disabled {
-    opacity: 0.4;
-  }
-
-  .views button.active {
-    background: var(--selected);
-  }
-
-  .treetools .icon,
-  .views .icon {
-    font-size: 13px;
-    color: var(--fg-sec);
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    border-top: 1px solid var(--stroke);
   }
 
   .content {
@@ -1001,64 +1173,143 @@
   }
 
   .listhead {
+    flex: 0 0 auto;
+    min-height: 52px;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 10px;
-    padding: 10px 12px 6px;
+    padding: 10px 10px var(--space-2) 18px;
   }
 
   .listhead .title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-display);
+    font-size: var(--text-title);
     font-weight: 600;
+    line-height: 28px;
+  }
+
+  .count {
+    flex: 0 0 auto;
+    padding-top: 5px;
+    font-size: var(--text-caption);
+    color: var(--fg-sec);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .grow {
+    flex: 1 1 auto;
   }
 
   .badge {
+    flex: 0 0 auto;
     padding: 1px 6px;
     border-radius: 10px;
     background: var(--selected);
-    font-size: 11px;
-    color: var(--fg-sec);
+    font-size: var(--text-caption);
+    color: var(--fg);
+    white-space: nowrap;
+  }
+
+  .placeholder {
+    flex: 1 1 auto;
   }
 
   .status {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    height: 30px;
+    height: 28px;
     padding: 0 14px;
     border-top: 1px solid var(--stroke);
-    font-size: 11px;
+    font-size: var(--text-caption);
+    color: var(--fg-sec);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ------------------------------------------------------------ 空状態とドロップ */
+
+  .acts {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  kbd {
+    padding: 1px 6px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-sm);
+    background: var(--layer-solid);
+    font-family: var(--font-ui);
+    font-size: var(--text-caption);
     color: var(--fg-sec);
   }
 
-  /* ダイアログの中身 */
-  .field {
+  .prefixes {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-1) 14px;
+    margin: 0;
+    font-size: 12px;
+  }
+
+  .prefixes dt {
+    color: var(--fg);
+  }
+
+  .prefixes dd {
+    margin: 0;
+    color: var(--fg-sec);
+  }
+
+  .dropzone {
+    position: absolute;
+    inset: var(--space-2);
+    z-index: 5;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    border: 2px dashed var(--accent-line);
+    border-radius: var(--radius-md);
+    background: color-mix(in oklch, var(--layer-solid) 85%, transparent);
+    pointer-events: none;
+    animation: fade var(--dur-fast) var(--ease-out);
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .dropzone .icon {
+    font-size: var(--text-title);
+    color: var(--accent-line);
+  }
+
+  .dropzone .say {
+    font-size: var(--text-subtitle);
+    font-weight: 600;
+  }
+
+  .dropzone .why {
     font-size: 12px;
     color: var(--fg-sec);
   }
 
-  .field input,
-  .field textarea {
-    padding: 6px 8px;
-    border: 1px solid var(--stroke);
-    border-bottom-color: var(--fg-sec);
-    border-radius: var(--radius-sm);
-    background: var(--bg-opaque);
-    color: var(--fg);
-    outline: none;
-    resize: vertical;
-  }
-
-  .field input:focus,
-  .field textarea:focus {
-    border-bottom: 2px solid var(--accent);
-  }
+  /* ------------------------------------------------------------ ダイアログの中身 */
 
   .row {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .row .field {
@@ -1068,11 +1319,11 @@
   .check {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     font-size: 12px;
   }
 
-  .body {
+  .message {
     margin: 0;
     line-height: 1.6;
   }
@@ -1088,12 +1339,82 @@
   .choice {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 6px;
+    gap: var(--space-2);
+    min-height: var(--control);
+    padding: 0 6px;
     border-radius: var(--radius-sm);
   }
 
   .choice:hover {
     background: var(--hover);
+  }
+
+  .file {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 12px;
+    color: var(--fg-sec);
+    overflow-wrap: anywhere;
+  }
+
+  .file .icon {
+    font-size: var(--icon-control);
+  }
+
+  .modes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .modes legend {
+    margin-bottom: var(--space-1);
+    padding: 0;
+    font-size: 12px;
+    color: var(--fg-sec);
+  }
+
+  .mode {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 2px var(--space-2);
+    padding: var(--space-2) var(--space-2) var(--space-2) 6px;
+    border-radius: var(--radius-sm);
+  }
+
+  .mode:hover {
+    background: var(--hover);
+  }
+
+  .mode input {
+    width: 16px;
+    height: 16px;
+    margin: 1px 0 0;
+  }
+
+  .what {
+    font-weight: 600;
+  }
+
+  .how {
+    grid-column: 2;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--fg-sec);
+  }
+
+  .how.danger {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    color: var(--warn);
+  }
+
+  .how.danger .icon {
+    font-size: var(--text-caption);
   }
 </style>

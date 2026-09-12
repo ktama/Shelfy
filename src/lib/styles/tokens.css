@@ -1,0 +1,93 @@
+/* Hallmark · genre: modern-minimal · macrostructure: app (two-pane launcher) · design-system: doc/DESIGN.md · designed-as-app
+ * theme: custom (Fluent refined) · paper oklch(96.4% 0.004 75) · accent oklch(76% 0.15 72) amber
+ * fonts: Segoe UI Variable Display + Segoe UI Variable Text (system, not bundled)
+ * axes: light / grotesk-sans / warm
+ */
+
+/* 見た目のトークン。値の根拠と使い分けは doc/DESIGN.md にある。
+   部品はここにある名前だけを参照し、色や書体を直接書かない。 */
+
+:root {
+  /* 色（第 2 節） */
+  --bg-opaque: oklch(96.4% 0.004 75);
+  --layer-solid: oklch(98.8% 0.003 75);
+  --fg: oklch(21% 0.008 65);
+  --fg-sec: oklch(47% 0.008 65);
+  --stroke: oklch(89% 0.005 75);
+  --stroke-strong: oklch(62% 0.006 65);
+  --accent: oklch(76% 0.15 72);
+  --accent-ink: oklch(22% 0.03 65);
+  --accent-line: oklch(60% 0.13 62);
+  --accent-text: oklch(50% 0.11 62);
+  --warn: oklch(55% 0.17 35);
+  --focus: var(--fg);
+  --shadow: oklch(15% 0.01 65);
+
+  --layer-amount: 72%;
+  --hover-amount: 5%;
+  --press-amount: 10%;
+  --selected-amount: 16%;
+  --scrim-amount: 35%;
+  --shadow-amount: 16%;
+
+  --layer: color-mix(in oklch, var(--layer-solid) var(--layer-amount), transparent);
+  --hover: color-mix(in oklch, var(--fg) var(--hover-amount), transparent);
+  --press: color-mix(in oklch, var(--fg) var(--press-amount), transparent);
+  --selected: color-mix(in oklch, var(--accent) var(--selected-amount), transparent);
+  --scrim: color-mix(in oklch, var(--shadow) var(--scrim-amount), transparent);
+  --elevation: 0 8px 20px color-mix(in oklch, var(--shadow) var(--shadow-amount), transparent);
+
+  /* 文字（第 3 節） */
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  --icon: "Segoe Fluent Icons", "Segoe MDL2 Assets";
+
+  --text-title: 20px;
+  --text-subtitle: 15px;
+  --text-body: 13px;
+  --text-caption: 11px;
+  --icon-kind: 16px;
+  --icon-control: 14px;
+
+  /* 寸法（第 4 節） */
+  --titlebar: 40px;
+  --control: 32px;
+  --pane-width: 220px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* 動き（第 6 節） */
+  --dur-fast: 120ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-opaque: oklch(19% 0.004 75);
+    --layer-solid: oklch(24% 0.005 75);
+    --fg: oklch(95% 0.003 75);
+    --fg-sec: oklch(76% 0.006 75);
+    --stroke: oklch(32% 0.005 75);
+    --stroke-strong: oklch(58% 0.006 75);
+    --accent: oklch(80% 0.14 76);
+    --accent-ink: oklch(20% 0.03 65);
+    --accent-line: oklch(80% 0.14 76);
+    --accent-text: oklch(82% 0.12 78);
+    --warn: oklch(74% 0.13 45);
+    --shadow: oklch(5% 0.01 65);
+
+    --layer-amount: 55%;
+    --hover-amount: 7%;
+    --press-amount: 14%;
+    --selected-amount: 20%;
+    --scrim-amount: 50%;
+    --shadow-amount: 50%;
+  }
+}

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 150" width="780" height="150" role="img" aria-label="Shelfy">
+  <!-- README のヘッダー（暗い表示用）。アイコンの形は src-tauri/icons/source.svg と同じ。 -->
+  <g transform="translate(0 3) scale(3)">
+    <rect x="4" y="34" width="40" height="5" rx="1.5" fill="#574336"/>
+    <rect x="9" y="9" width="8" height="25" rx="1" fill="#D37814"/>
+    <rect x="9" y="13" width="8" height="2.5" fill="#F5DC98"/>
+    <rect x="18" y="16" width="7" height="18" rx="1" fill="#F2B036"/>
+    <rect x="18" y="20" width="7" height="2" fill="#D37814"/>
+    <g transform="translate(31.55 34) rotate(-20)">
+      <rect x="0" y="-22" width="7" height="22" rx="1" fill="#F5DC98"/>
+      <rect x="0" y="-18" width="7" height="2" fill="#D37814"/>
+    </g>
+  </g>
+  <text x="168" y="82" fill="#F4F2EF" font-family="'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif" font-size="60" font-weight="600" letter-spacing="-0.5">Shelfy</text>
+  <text x="170" y="118" fill="#B5AFA8" font-family="'Segoe UI Variable Text', 'Segoe UI', 'Yu Gothic UI', 'Hiragino Sans', system-ui, sans-serif" font-size="17">ファイルとフォルダと URL を棚に置き、ホットキーで開くランチャー</text>
+</svg>

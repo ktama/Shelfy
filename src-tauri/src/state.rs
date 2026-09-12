@@ -10,6 +10,12 @@ use shelfy::adapters::windows::{
 use shelfy::hotkey::{self, HotkeySpec};
 use shelfy::ports::{settings_keys, AppLogger, SettingsRepository};
 
+/// ウィンドウに掛けられた効果。画面はこれを見て背景の塗り方を決める。
+pub struct WindowEffects {
+    /// Mica を適用できたか。できていれば画面は背景を塗らずに透かす。
+    pub mica: bool,
+}
+
 pub struct AppState {
     pub store: Arc<JsonStore>,
     pub launcher: ShellLauncher,

@@ -25,7 +25,23 @@
     if (!menu) return;
     const rect = menu.getBoundingClientRect();
     size = { width: rect.width, height: rect.height };
+    // キーボードでも選べるよう、最初の項目にフォーカスを移す
+    enabledEntries()[0]?.focus();
   });
+
+  function enabledEntries(): HTMLButtonElement[] {
+    return menu ? [...menu.querySelectorAll<HTMLButtonElement>("button.entry:not(:disabled)")] : [];
+  }
+
+  function onKeydown(event: KeyboardEvent) {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    const list = enabledEntries();
+    if (list.length === 0) return;
+    const current = list.indexOf(document.activeElement as HTMLButtonElement);
+    const step = event.key === "ArrowDown" ? 1 : -1;
+    list[(current + step + list.length) % list.length].focus();
+  }
 
   function choose(entry: MenuEntry) {
     if (entry.kind !== "action" || entry.disabled) return;
@@ -48,10 +64,11 @@
   tabindex="-1"
   style="left: {position.left}px; top: {position.top}px"
   onpointerdown={(e) => e.stopPropagation()}
+  onkeydown={onKeydown}
 >
   {#each entries as entry, index (index)}
     {#if entry.kind === "separator"}
-      <div class="separator"></div>
+      <div class="separator" role="separator"></div>
     {:else}
       <button
         class="entry"
@@ -70,42 +87,55 @@
   .menu {
     position: fixed;
     z-index: 10;
-    min-width: 180px;
-    padding: 4px;
+    min-width: 200px;
+    padding: var(--space-1);
     border: 1px solid var(--stroke);
     border-radius: var(--radius-md);
     background: var(--layer-solid);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+    box-shadow: var(--elevation);
+    outline: none;
+    animation: fade var(--dur-fast) var(--ease-out);
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
   }
 
   .entry {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-3);
     width: 100%;
-    height: 30px;
+    height: var(--control);
     padding: 0 10px;
     border-radius: var(--radius-sm);
     text-align: left;
+    white-space: nowrap;
   }
 
   .entry:hover:not(:disabled) {
     background: var(--hover);
   }
 
+  .entry:active:not(:disabled) {
+    background: var(--press);
+  }
+
   .entry:disabled {
-    opacity: 0.4;
+    opacity: 0.45;
   }
 
   .entry .icon {
-    width: 16px;
-    font-size: 13px;
+    width: var(--icon-kind);
+    font-size: var(--icon-control);
     color: var(--fg-sec);
   }
 
   .separator {
     height: 1px;
-    margin: 4px 6px;
+    margin: var(--space-1) 6px;
     background: var(--stroke);
   }
 </style>

@@ -6,6 +6,8 @@
     title: string;
     /** 実行ボタンの文言 */
     confirmLabel?: string;
+    /** 取り消しボタンの文言 */
+    cancelLabel?: string;
     /** 実行を押せるか */
     canConfirm?: boolean;
     onconfirm: () => void;
@@ -17,6 +19,7 @@
     open,
     title,
     confirmLabel = "OK",
+    cancelLabel = "キャンセル",
     canConfirm = true,
     onconfirm,
     oncancel,
@@ -30,7 +33,10 @@
     if (open && panel) {
       const target = panel.querySelector<HTMLElement>("input, textarea, button.primary");
       target?.focus();
-      if (target instanceof HTMLInputElement) target.select();
+      // 文字の入力欄だけ、中身を選んでおく
+      if (target instanceof HTMLInputElement && (target.type === "text" || target.type === "number")) {
+        target.select();
+      }
     }
   });
 
@@ -68,8 +74,8 @@
       <h2>{title}</h2>
       <div class="content">{@render children()}</div>
       <div class="actions">
-        <button onclick={oncancel}>キャンセル</button>
-        <button class="primary" disabled={!canConfirm} onclick={onconfirm}>{confirmLabel}</button>
+        <button class="btn cancel" onclick={oncancel}>{cancelLabel}</button>
+        <button class="btn primary" disabled={!canConfirm} onclick={onconfirm}>{confirmLabel}</button>
       </div>
     </div>
   </div>
@@ -79,11 +85,11 @@
   .scrim {
     position: fixed;
     inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.4);
-    animation: fade 120ms ease-out;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    background: var(--scrim);
+    animation: fade var(--dur-fast) var(--ease-out);
   }
 
   @keyframes fade {
@@ -93,18 +99,18 @@
   }
 
   .panel {
-    width: min(420px, calc(100% - 48px));
-    padding: 20px;
+    width: min(460px, calc(100% - 48px));
+    padding: var(--space-5);
     border: 1px solid var(--stroke);
     border-radius: var(--radius-md);
     background: var(--layer-solid);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--elevation);
     outline: none;
   }
 
   h2 {
-    margin: 0 0 12px;
-    font-size: 15px;
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-subtitle);
     font-weight: 600;
   }
 
@@ -118,29 +124,10 @@
   .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
-  .actions button {
+  .cancel {
     min-width: 92px;
-    height: 30px;
-    padding: 0 12px;
-    border: 1px solid var(--stroke);
-    border-radius: var(--radius-sm);
-    background: var(--layer);
-  }
-
-  .actions button:hover {
-    background: var(--hover);
-  }
-
-  .actions .primary {
-    border-color: transparent;
-    background: var(--accent);
-    color: #fff;
-  }
-
-  .actions .primary:disabled {
-    opacity: 0.5;
   }
 </style>

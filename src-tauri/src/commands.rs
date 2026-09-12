@@ -15,7 +15,7 @@ use shelfy::usecases::launch::{
 use shelfy::usecases::search::search_items;
 use shelfy::usecases::settings::read_settings as read_stored_settings;
 
-use crate::state::AppState;
+use crate::state::{AppState, WindowEffects};
 
 // ---------------------------------------------------------------- 画面へ渡す形
 
@@ -64,6 +64,8 @@ pub struct StartupInfo {
     /// 利用者に伝えるべきことがあれば入る
     pub notice: Option<String>,
     pub read_only: bool,
+    /// Mica を適用できたか。画面はこれを見て背景を透かす（第 5.3 節）。
+    pub mica: bool,
     pub settings: SettingsView,
 }
 
@@ -159,7 +161,7 @@ pub fn missing_items(state: State<'_, AppState>) -> Vec<ItemView> {
 }
 
 #[tauri::command]
-pub fn startup_info(state: State<'_, AppState>) -> StartupInfo {
+pub fn startup_info(state: State<'_, AppState>, effects: State<'_, WindowEffects>) -> StartupInfo {
     use shelfy::adapters::store::LoadOutcome;
 
     let (storage, notice) = match &state.load_outcome {
@@ -191,6 +193,7 @@ pub fn startup_info(state: State<'_, AppState>) -> StartupInfo {
         storage: storage.to_string(),
         notice,
         read_only: state.store.is_read_only(),
+        mica: effects.mica,
         settings: read_settings(&state),
     }
 }

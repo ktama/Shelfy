@@ -31,8 +31,9 @@
   // 見えている範囲だけを描く（doc/ARCHITECTURE.md 第 11 節）。
   // 1,000 件を素直に並べると描画に 73 ms かかり、切り替えが引っかかる。
   // 行の高さはメモの有無で 2 種類しかないので、累積和で正確な位置が出せる。
-  const ROW_PLAIN = 46;
-  const ROW_WITH_MEMO = 62;
+  // 値は doc/DESIGN.md 第 4 節。CSS の .row と .row.tall の高さと必ず揃える。
+  const ROW_PLAIN = 44;
+  const ROW_WITH_MEMO = 60;
   /** 上下に余分に描いておく行数。速く弾いたときの空白を防ぐ。 */
   const OVERSCAN = 6;
 
@@ -154,9 +155,10 @@
         <span class="icon kind">{iconFor(item.kind)}</span>
         <span class="text">
           <span class="name">
-            {item.displayName}
+            <span class="display">{item.displayName}</span>
             {#if missing.has(item.id)}
-              <span class="icon warn" title="参照先が見つかりません">{ICON.missing}</span>
+              <!-- 色だけに頼らず、アイコンと文言を並べる（doc/DESIGN.md 第 2 節） -->
+              <span class="missing"><span class="icon">{ICON.missing}</span>見つかりません</span>
             {/if}
           </span>
           <span class="sub">
@@ -164,7 +166,7 @@
             <span class="target">{item.target}</span>
           </span>
           {#if item.memo}
-            <span class="memo">{item.memo}</span>
+            <span class="memo"><span class="icon">{ICON.memo}</span>{item.memo}</span>
           {/if}
         </span>
         <span class="date">{formatDate(item.lastAccessedAt)}</span>
@@ -177,7 +179,7 @@
   .list {
     flex: 1 1 auto;
     overflow-y: auto;
-    padding: 4px 8px 8px;
+    padding: 0 var(--space-2) var(--space-2);
     outline: none;
   }
 
@@ -190,19 +192,19 @@
     left: 0;
     right: 0;
     /* 高さは 2 種類だけにして、位置の計算を正確に保つ */
-    height: 46px;
+    height: 44px;
     display: grid;
-    grid-template-columns: 24px 1fr auto;
+    grid-template-columns: var(--icon-kind) minmax(0, 1fr) auto;
     align-items: center;
-    gap: 10px;
-    padding: 0 10px;
+    gap: var(--space-3);
+    padding: 0 var(--space-3);
     border-radius: var(--radius-sm);
     cursor: default;
     touch-action: none;
   }
 
   .row.tall {
-    height: 62px;
+    height: 60px;
   }
 
   .row:hover {
@@ -218,50 +220,82 @@
   }
 
   .row.over {
-    box-shadow: inset 0 2px 0 var(--accent);
+    box-shadow: inset 0 2px 0 var(--accent-line);
   }
 
   .kind {
-    font-size: 16px;
+    font-size: var(--icon-kind);
     color: var(--fg-sec);
   }
 
   .text {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
     min-width: 0;
   }
 
   .name {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2);
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .warn {
-    font-size: 12px;
+  .display {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .missing {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-caption);
     color: var(--warn);
+  }
+
+  .missing .icon {
+    font-size: var(--text-caption);
   }
 
   .sub,
   .memo {
     display: block;
-    font-size: 11px;
-    color: var(--fg-sec);
+    font-size: var(--text-caption);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .shelf {
-    padding: 0 6px 0 0;
-    color: var(--accent);
+  .sub {
+    color: var(--fg-sec);
   }
 
+  /* メモは利用者が書いた文なので、パスより濃くする */
+  .memo {
+    color: var(--fg);
+  }
+
+  .memo .icon {
+    margin-right: 5px;
+    font-size: 10px;
+    color: var(--fg-sec);
+    vertical-align: -1px;
+  }
+
+  .shelf {
+    margin-right: 10px;
+    color: var(--accent-text);
+  }
+
+  /* 行ごとに別の格子なので、幅を決めて右端と桁の位置を行をまたいで揃える */
   .date {
-    font-size: 11px;
+    min-width: 7em;
+    text-align: right;
+    font-size: var(--text-caption);
     color: var(--fg-sec);
     font-variant-numeric: tabular-nums;
   }

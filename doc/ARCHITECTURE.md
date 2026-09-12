@@ -44,7 +44,7 @@ Clean Architecture の依存方向は維持する。
 外界とのやり取りは `ports` に置いた trait を通す。
 
 この分離を保つ理由は、ドメインとユースケースが UI から独立していれば、テストが仕様の記録として機能するからである。
-実際、166 個のテストのうち 136 個は、Tauri も Windows API も起動せずに走る。
+実際、169 個のテストのうち 137 個は、Tauri も Windows API も起動せずに走る。
 表示の枠組みを入れ替えても、この層は書き直さずに済む。
 
 ## 3. リポジトリ構成
@@ -57,8 +57,9 @@ Shelfy/
 │   ├─ main.ts                   App の取り付け
 │   └─ lib/
 │       ├─ App.svelte            画面全体の取りまとめ
-│       ├─ components/           ShelfTree、ItemList、Dialog、ContextMenu
-│       ├─ styles/app.css        Fluent 風のトークンとスタイル
+│       ├─ components/           ShelfTree、ItemList、EmptyState、Dialog、ContextMenu
+│       ├─ styles/tokens.css     色、文字、寸法、動きのトークン（DESIGN.md 第 2〜6 節）
+│       ├─ styles/app.css        全体の規則と、部品が共有する見た目
 │       ├─ ipc.ts                コマンドとイベントの型付き薄いラッパ
 │       └─ icons.ts              Segoe Fluent Icons のグリフ
 ├─ src-tauri/
@@ -77,13 +78,15 @@ Shelfy/
 │   │   ├─ mutations.rs          IPC の境界（更新系）
 │   │   ├─ settings.rs           設定の保存とホットキーの再登録
 │   │   ├─ existence_check.rs    背景での存在確認
+│   │   ├─ tray.rs               トレイアイコンと、タスクバーのテーマへの追従
 │   │   └─ state.rs              アプリ状態の保持
 │   ├─ capabilities/default.json 権限の宣言（第 6.0 節）
 │   ├─ tests/                    ファイル越しの結合、性能、移行
-│   ├─ icons/                    tauri.conf.json が参照する分と、生成元の source-1024.png
+│   ├─ icons/                    原本の SVG と、そこから書き出した ICO、PNG、トレイ用の RGBA
 │   ├─ Cargo.toml
 │   └─ tauri.conf.json
 ├─ tools/shelfy-migrate/         v1.0.0 の SQLite を読む一度きりの道具（配布物に含めない）
+├─ tools/export-icons.ps1        アイコンの書き出し（DEVELOPMENT.md 第 2.3 節）
 └─ doc/
 ```
 
@@ -160,24 +163,30 @@ Svelte を選ぶ理由は、コンパイル時にフレームワークの大半�
 この選択は差し替えやすい。
 バックエンドとの境界がコマンドの集合として定義されているため、フロントエンドを別の枠組みで書き直しても Rust 側は変わらない。
 
-### 5.2 Fluent の見た目
+### 5.2 見た目の実現
+
+見た目の決まり（色、文字、寸法、状態、配置、アイコン）は [DESIGN.md](DESIGN.md) に置く。
+ここでは、それを CSS でどう組んでいるかだけを述べる。
 
 UI ライブラリは追加せず、CSS で組む。
 
-| 要素     | 方針                                                                           |
-| -------- | ------------------------------------------------------------------------------ |
-| フォント | Segoe UI Variable Text（Windows 11）、Segoe UI、Yu Gothic UI の順に指定        |
-| アイコン | Segoe Fluent Icons のグリフを文字として描画。Windows 10 では Segoe MDL2 Assets |
-| 色       | CSS カスタムプロパティでトークン化し、明暗の切り替えを 1 か所で行う            |
-| 角丸     | 小要素 4px、カードとダイアログ 8px                                             |
-| 階層     | 背景の重なりと薄い境界線で表す。強い影は使わない                               |
-| 動き     | 100〜150 ms の短いフェードのみ。ランチャーの即時性を損なわない                 |
+| 要素     | 実現方法                                                                                     |
+| -------- | -------------------------------------------------------------------------------------------- |
+| トークン | `src/lib/styles/tokens.css` に CSS カスタムプロパティで置く。値は OKLCH                      |
+| 共有部品 | ボタン、左ペインの行、入力欄の見た目は `app.css` に置き、各部品はクラス名で使う              |
+| 重なり   | `color-mix()` でトークンに透明度を掛けて作る。暗いテーマでは混ぜる割合のトークンだけを替える |
+| フォント | Segoe UI Variable Text と Display（Windows 11）、Segoe UI、Yu Gothic UI の順に指定           |
+| アイコン | Segoe Fluent Icons のグリフを文字として描画。Windows 10 では Segoe MDL2 Assets               |
+| 動き     | 120 ms のフェードのみ。`prefers-reduced-motion` では止める                                   |
 
 Windows 11 に標準搭載されたフォントを使うため、フォントファイルを同梱しない。
 これは配布サイズにも効く。
 
 明暗の切り替えは、OS の設定に追従する。
 Tauri から通知されるテーマの変更と、CSS の `prefers-color-scheme` の両方を受ける。
+
+タイトルバーに出すアプリアイコンは、16px 用の SVG を Vite に読ませている。
+小さいので Vite が data URI としてバンドルに埋め込み、別ファイルにはならない。
 
 ### 5.3 ウィンドウの外観
 
@@ -186,8 +195,12 @@ Tauri から通知されるテーマの変更と、CSS の `prefers-color-scheme
 移動用の領域を指定して、掴んで動かせるようにする。
 
 Mica は設定ファイルのウィンドウ効果で指定する。
-適用できない環境では効果が無効になるだけなので、CSS 側に不透明な背景色を必ず用意しておく。
-背景を透明のままにすると、非対応環境で下が透けて読めなくなる。
+適用できたかどうかは起動時に判定し、`startup_info` の戻り値で画面へ渡す。
+画面は、適用できたときだけ `html` に `mica` クラスを付け、ウィンドウ全体の塗りをやめる。
+
+塗りをやめる判断を画面側だけで行わないのは、非対応環境で下が透けて読めなくなるためである。
+CSS には不透明な背景色を必ず用意し、既定ではそちらを使う。
+ペインやダイアログは `--layer` で半透明にしてあり、Mica が効いた環境ではその下に材質が見える。
 
 ## 6. IPC の設計
 
@@ -223,34 +236,34 @@ Mica は設定ファイルのウィンドウ効果で指定する。
 
 参照系は `commands.rs`、更新系は `mutations.rs` にある。
 
-| コマンド             | 入力                       | 返す値                             |
-| -------------------- | -------------------------- | ---------------------------------- |
-| `startup_info`       | なし                       | Shelf 一覧、設定、ホットキーの警告 |
-| `load_shelves`       | なし                       | Shelf の一覧（階層情報付き）       |
-| `load_items`         | Shelf                      | Item の一覧                        |
-| `search`             | クエリ文字列               | 検索結果（Shelf 名付き）           |
-| `recent_items`       | なし                       | 最近の Item（件数は設定に従う）    |
-| `missing_items`      | なし                       | 欠損の Item                        |
-| `create_shelf`       | 名前、親                   | 作成結果                           |
-| `rename_shelf`       | Shelf、新しい名前          | 結果                               |
-| `move_shelf`         | Shelf、新しい親            | 結果                               |
-| `delete_shelf`       | Shelf                      | 結果                               |
-| `toggle_pin_shelf`   | Shelf                      | 反転後の状態                       |
-| `reorder_shelves`    | 並び替え後の識別子の列     | 結果                               |
-| `add_items`          | Shelf、パスの列            | 追加結果の列                       |
-| `add_url`            | Shelf、URL、表示名         | 追加結果                           |
-| `remove_item`        | Item                       | 結果                               |
-| `rename_item`        | Item、新しい表示名         | 結果                               |
-| `update_item_memo`   | Item、メモ                 | 結果                               |
-| `move_item_to_shelf` | Item、移動先 Shelf         | 結果                               |
-| `reorder_items`      | 並び替え後の識別子の列     | 結果                               |
-| `launch`             | Item                       | 結果と起動後の画面制御             |
-| `open_parent`        | Item                       | 結果                               |
-| `export_data`        | 保存先                     | 結果                               |
-| `import_data`        | 読み込み元、全置換かどうか | 取り込み件数と除外件数             |
-| `save_settings`      | 設定一式                   | 結果                               |
-| `check_existence`    | Item の識別子の列          | なし（結果はイベントで返す）       |
-| `hide_window`        | なし                       | なし                               |
+| コマンド             | 入力                       | 返す値                                                  |
+| -------------------- | -------------------------- | ------------------------------------------------------- |
+| `startup_info`       | なし                       | 読み込みの結果、通知、読み取り専用か、Mica の可否、設定 |
+| `load_shelves`       | なし                       | Shelf の一覧（階層情報付き）                            |
+| `load_items`         | Shelf                      | Item の一覧                                             |
+| `search`             | クエリ文字列               | 検索結果（Shelf 名付き）                                |
+| `recent_items`       | なし                       | 最近の Item（件数は設定に従う）                         |
+| `missing_items`      | なし                       | 欠損の Item                                             |
+| `create_shelf`       | 名前、親                   | 作成結果                                                |
+| `rename_shelf`       | Shelf、新しい名前          | 結果                                                    |
+| `move_shelf`         | Shelf、新しい親            | 結果                                                    |
+| `delete_shelf`       | Shelf                      | 結果                                                    |
+| `toggle_pin_shelf`   | Shelf                      | 反転後の状態                                            |
+| `reorder_shelves`    | 並び替え後の識別子の列     | 結果                                                    |
+| `add_items`          | Shelf、パスの列            | 追加結果の列                                            |
+| `add_url`            | Shelf、URL、表示名         | 追加結果                                                |
+| `remove_item`        | Item                       | 結果                                                    |
+| `rename_item`        | Item、新しい表示名         | 結果                                                    |
+| `update_item_memo`   | Item、メモ                 | 結果                                                    |
+| `move_item_to_shelf` | Item、移動先 Shelf         | 結果                                                    |
+| `reorder_items`      | 並び替え後の識別子の列     | 結果                                                    |
+| `launch`             | Item                       | 結果と起動後の画面制御                                  |
+| `open_parent`        | Item                       | 結果                                                    |
+| `export_data`        | 保存先                     | 結果                                                    |
+| `import_data`        | 読み込み元、全置換かどうか | 取り込み件数と除外件数                                  |
+| `save_settings`      | 設定一式                   | 結果                                                    |
+| `check_existence`    | Item の識別子の列          | なし（結果はイベントで返す）                            |
+| `hide_window`        | なし                       | なし                                                    |
 
 `add_items` が複数を受け取るのは、エクスプローラから複数ファイルをまとめて落とせるためである。
 1 件ずつ呼ぶと往復が件数分になる。
@@ -361,6 +374,18 @@ Tauri の単一インスタンス機構を使う。
 | 存在確認         | ファイルとフォルダの存在判定。URL は通信せず存在扱い |
 | トレイアイコン   | Tauri のトレイ機構。メニューに表示と終了を置く       |
 | ログ             | 追記のみ。書き込み失敗はアプリの動作に影響させない   |
+
+トレイアイコンは、タスクバーのテーマに合わせて明暗 2 種を切り替える。
+判断にはレジストリの `SystemUsesLightTheme` を使い、ウィンドウのテーマは使わない。
+タスクバーだけを明るくする設定があり、そのときウィンドウのテーマ変更の通知は届かないためである。
+
+変更は、専用のスレッドで `RegNotifyChangeKeyValue` を呼んで待つ。
+通知が来るまで止まっているので、非表示中の CPU 使用率（SPECIFICATION.md 第 11 節）に影響しない。
+同じキーにあるほかの値の変更でも起きるため、値を読み直して変わったときだけ差し替える。
+
+アイコンの画像は、`GetSystemMetrics(SM_CXSMICON)` で求めた大きさに近い 16、24、32px から選ぶ。
+画像は PNG ではなく生の RGBA で実行ファイルに埋め込む。
+PNG で持つと実行時に復号器が要り、6 枚分の生データ（約 15 KB）より大きくなるためである。
 
 ### 8.4 WebView2 の不在への対処
 
