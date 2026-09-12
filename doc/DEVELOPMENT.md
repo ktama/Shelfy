@@ -78,12 +78,12 @@ SVG を直したら、リポジトリの根で書き出しを走らせ、生成�
 powershell -File tools/export-icons.ps1
 ```
 
-| 生成物                                   | 元                            | 使うところ                         |
-| ---------------------------------------- | ----------------------------- | ---------------------------------- |
-| `icon.ico`                               | `source.svg`、`source-16.svg` | 実行ファイルとウィンドウのアイコン |
-| `32x32.png`、`128x128.png`               | `source.svg`                  | `tauri.conf.json` の指定           |
-| `source-1024.png`                        | `source.svg`                  | 大きい画像が要るときの素材         |
-| `tray/light-*.rgba`、`tray/dark-*.rgba`  | `tray-on-light.svg` など      | トレイ（`src/tray.rs` が埋め込む） |
+| 生成物                                  | 元                            | 使うところ                         |
+| --------------------------------------- | ----------------------------- | ---------------------------------- |
+| `icon.ico`                              | `source.svg`、`source-16.svg` | 実行ファイルとウィンドウのアイコン |
+| `32x32.png`、`128x128.png`              | `source.svg`                  | `tauri.conf.json` の指定           |
+| `source-1024.png`                       | `source.svg`                  | 大きい画像が要るときの素材         |
+| `tray/light-*.rgba`、`tray/dark-*.rgba` | `tray-on-light.svg` など      | トレイ（`src/tray.rs` が埋め込む） |
 
 描画は Tauri CLI の `tauri icon` に任せ、ICO の組み立てと RGBA への変換だけをスクリプトで行う。
 ICO の先頭は 32px にしてある。
@@ -318,6 +318,23 @@ Get-Process -Id $ids | Measure-Object WorkingSet64 -Sum | Select-Object -ExpandP
 | `v*` タグ        | テスト、release ビルド、サイズ検査、zip 化、GitHub Release の作成              |
 
 定義は [.github/workflows/](../.github/workflows/) にある。
+
+`cargo audit` は `rustsec/audit-check` ではなく CLI で呼ぶ。
+このアクションはチェック実行を作るため `checks: write` の権限が要り、権限が下がる fork からの PR では必ず失敗する。
+結果はジョブのログで読めるので、権限を広げる理由がない。
+
+`cargo audit` が失敗するのは脆弱性を見つけたときだけである。
+unmaintained と unsound の警告は、報告はするが失敗させない。
+2026 年 9 月の時点で 7 件出ており、どれも Tauri の依存の先にある。
+
+| 警告                            | crate                             | どこから来るか                                                |
+| ------------------------------- | --------------------------------- | ------------------------------------------------------------- |
+| unmaintained 4 件               | `unic-char-property` など unic 系 | `urlpattern` → `tauri-utils`                                  |
+| unmaintained 1 件               | `proc-macro-error`                | `glib-macros` → `glib`（下と同じ経路）                        |
+| unmaintained 1 件、unsound 1 件 | `glib` 0.18.5                     | `gtk` → `libappindicator` → `tray-icon` → `tauri`（Linux 用） |
+
+`glib` と `proc-macro-error` は Linux 向けの依存であり、Windows 版の実行ファイルには入らない。
+自分たちの側で直せるものは無いため、Tauri の更新を待つ。
 
 リリースの手順にはサイズの検査を入れてある。
 実行ファイルが 10 MB を超えると失敗する。
